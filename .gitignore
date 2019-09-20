@@ -21,3 +21,13 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
+
+# IntelliJ IDEA files
+.idea/*
+*.iml
+
+# Mac .DS_Store file
+.DS_Store
+
+# ignore changes to Makefile
+Makefile

@@ -17,7 +17,7 @@ function simpleheat(canvas) {
 
 simpleheat.prototype = {
 
-    defaultRadius: 10,
+    defaultRadius: 1,
 
     defaultGradient: {
         // 0.4: 'blue',
