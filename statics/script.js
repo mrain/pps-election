@@ -258,6 +258,7 @@ function drawMap() {
   var board = [[0.0, 0.0], [1000.0, 0.0], [500.0, Math.sqrt(3) * 500]];
   drawPolygon(board, "rgba(255,255,255,0)");
 
+  Election();
   if (voters && drawHeatmap) {
     logStatus("Generating heatmap");
     voters.forEach( function (voter) { drawVoter(voter); } );
@@ -265,7 +266,6 @@ function drawMap() {
 
   if (districts && drawDistricts) {
     logStatus("Generating districts map");
-    Election();
     districts.forEach(
       function(district, i) { drawPolygon(district, dColor[i]); }
     );
