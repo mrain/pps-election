@@ -20,6 +20,7 @@ var drawHeatmap = false;
 var drawDistricts = true;
 var dp = [true, false, false];
 var pcp = [0, 0, 0];
+var stats = [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]];
 
 const multiply = (rgb1, rgb2) => rgb1.map((c, i) => Math.floor(c * rgb2[i] / 255))
 const soften = (rgb, coeff) => rgb.map((c) => Math.floor(255 * (1 - coeff) + c * coeff));
@@ -187,6 +188,7 @@ function getColor(seats) {
 
 function Election() {
   logStatus("Election in action!");
+  stats.forEach((x) => (x.fill(0)));
   var i, j, k, p;
   for (i = 0; i < vdList.length; ++ i) {
     voting[i].fill(0);
@@ -197,7 +199,16 @@ function Election() {
     }
     seats[i] = defaultVoting(voting[i]);
 
+    seats[i].forEach(function(x, i) {
+      stats[i][x] ++;
+      stats[i][4] += parseInt(x);
+    });
     dColor[i] = getColor(seats[i]);
+  }
+  var t = document.getElementById("result");
+  for (i = 0; i < stats.length; ++ i) {
+    for (j = 0; j < 5; ++ j)
+      t.rows[i + 1].cells[j + 1].innerText = stats[i][j];
   }
 }
 

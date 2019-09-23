@@ -17,16 +17,34 @@
         div.b {
             margin-top: 2px;
         }
+        div.column {
+            display: inline-block;
+        }
+        div.rt {
+            width: 400px;
+            padding-left: 30px;
+            display: inline-block;
+        }
         p {
           display: inline;
         }
         p.indent {
           padding-left: 10px;
         }
+        table, th, td {
+          border: 1px solid black;
+        }
+        th,td {
+          padding: 3px;
+        }
+        table {
+          border-collapse: collapse;
+        }
     </style>
 </head>
 <body>
     <h2 style="text-align: center;">PPS 2019 - Election</h2>
+    <div class="column">
     <div class="b">
         <input type="file" id="mapdata"></input>
         <p class="indent"><button onclick="onFileUpload()">Load</button></p>
@@ -50,6 +68,43 @@
         <p class="indent">Party 1: <input type="range" id="p1p" min="0" max="1000" value="0"></input></p><p id="p1pv">0.000</p>
         <p class="indent">Party 2: <input type="range" id="p2p" min="0" max="1000" value="0"></input></p><p id="p2pv">0.000</p>
         <p class="indent">Party 3: <input type="range" id="p3p" min="0" max="1000" value="0"></input></p><p id="p3pv">0.000</p>
+    </div>
+    </div>
+    <div class="rt">
+        <table id="result">
+            <tr>
+                <td></td>
+                <td>0 seat</td>
+                <td>1 seat</td>
+                <td>2 seats</td>
+                <td>3 seats</td>
+                <td>Total seats</td>
+            </tr>
+            <tr>
+                <th> Party 1 </th>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <th> Party 2 </th>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <th> Party 3 </th>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
     </div>
     <center>
         <canvas id="canvas"style="margin: auto"></canvas>
