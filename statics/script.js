@@ -1,13 +1,15 @@
 var canvas = document.getElementById("canvas");
+var defaultBoardSize = 1200;
 const scale = 1000.0;
 const offset = 10.0;
 var _radius = 2.0;
 var voterHeatmapOpacity = 0.3;
+var distrctsOpacity = 0.8;
 var boardsize;
 var partyColor = [
   [255, 0, 0],
-  [0, 255, 0],
   [0, 0, 255],
+  [0, 255, 0],
 ];
 var voters;
 var districts;
@@ -18,6 +20,9 @@ var drawHeatmap = false;
 var drawDistricts = true;
 var dp = [true, false, false];
 var pcp = [0, 0, 0];
+
+const multiply = (rgb1, rgb2) => rgb1.map((c, i) => Math.floor(c * rgb2[i] / 255))
+const soften = (rgb, coeff) => rgb.map((c) => Math.floor(255 * (1 - coeff) + c * coeff));
 
 function transform(coordinate) {
   var [x, y] = coordinate;
@@ -126,11 +131,9 @@ function drawVoter(voter) {
   // const blend = (rgb1, rgb2) => rgb1.map((c, i) => Math.floor(c + rgb2[i]))
   // const invert = (rgb) => rgb.map((c) => (255 - c));
   var c = [255,255,255];
-  const multiply = (rgb1, rgb2) => rgb1.map((c, i) => Math.floor(c * rgb2[i] / 255))
   for (i = 2; i < voter.length; ++ i)
     if (dp[i - 2]) {
       var coeff = (voter[i] + pcp[i - 2]) / 2;
-      const soften = (rgb, coeff) => rgb.map((c) => Math.floor(255 * (1 - coeff) + c * coeff));
       // var c = soften(partyColor[i - 2], coeff);
       c = multiply(soften(partyColor[i - 2], coeff), c);
       // console.log(c);
@@ -175,10 +178,11 @@ function defaultVoting(voting) {
 
 function getColor(seats) {
   var t = seats.reduce((a,b)=>(a+b), 0);
-  var c = partyColor.reduce(
-    (a,b)=>(b.map((x,i)=>a[i] + Math.floor(x * seats[i]/t))),
-    new Array(seats.length).fill(0));
-  return "rgba(" + c[0] + "," + c[1] + "," + c[2] + ",0.6)";
+  var i, c = [255,255,255];
+  for (i = 0; i < seats.length; ++ i)
+    if (dp[i])
+        c = multiply(c, soften(partyColor[i], seats[i] / t));
+  return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + distrctsOpacity + ")";
 }
 
 function Election() {
@@ -197,7 +201,30 @@ function Election() {
   }
 }
 
+function drawPalette(ctx) {
+  ctx.font = "12px Ariel";
+  var i, j;
+  for (i = 0; i < partyColor.length; ++ i) {
+    ctx.fillStyle = "black";
+    ctx.fillText("Party " + (i + 1) + ":", 30, 30 * (i + 1) + 15);
+    for (j = 0; j < 4; ++ j) {
+      ctx.beginPath();
+      ctx.strokeStyle = "black";
+      ctx.rect(80 + 40 * j, 30 * (i + 1), 25, 25);
+      var c = soften(partyColor[i], j / 3);
+      // console.log("rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + distrctsOpacity + ")");
+      ctx.fillStyle = "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + distrctsOpacity + ")";
+      ctx.stroke();
+      ctx.fill();
+      ctx.closePath();
+    }
+  }
+}
+
 function drawMap() {
+  ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawPalette(ctx);
   if (!loaded) {
     logStatus("No data is loaded");
     return;
@@ -215,8 +242,6 @@ function drawMap() {
   voterHeatmapOpacity = x;
   document.getElementById("opacity").value = x;
 
-  ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   console.log("Hello!");
   var board = [[0.0, 0.0], [1000.0, 0.0], [500.0, Math.sqrt(3) * 500]];
@@ -234,6 +259,7 @@ function drawMap() {
       function(district, i) { drawPolygon(district, dColor[i]); }
     );
   }
+  drawPalette(ctx);
   logStatus("Done!");
   console.log("Finished!");
 }
@@ -286,7 +312,6 @@ function downloadImage() {
 }
 
 window.onload = function() {
-  var defaultBoardSize = 2400;
   document.getElementById("boardsize").value = defaultBoardSize;
   canvas.width = defaultBoardSize;
   canvas.height = defaultBoardSize;
