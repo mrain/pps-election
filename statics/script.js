@@ -4,7 +4,7 @@ const scale = 1000.0;
 const offset = 10.0;
 var _radius = 2.0;
 var voterHeatmapOpacity = 0.3;
-var distrctsOpacity = 0.8;
+var districtsOpacity = 0.8;
 var boardsize;
 var partyColor = [
   [255, 0, 0],
@@ -15,6 +15,7 @@ var voters;
 var districts;
 var vdList = [], dColor = [], voting = [], seats = []; // voters by districts
 var loaded = false;
+var selectionAlgorithm = defaultVoting;
 
 var drawHeatmap = false;
 var drawDistricts = true;
@@ -163,6 +164,12 @@ function argmax(a) {
   return r;
 }
 
+function winnerTakesAll(voting) {
+  var seats = new Array(voting.length).fill(0);
+  seats[argmax(voting)] = 1;
+  return seats;
+}
+
 function defaultVoting(voting) {
   var i, j, k, s = voting.reduce((a, b) => (a + b), 0);
   var t = Math.ceil(s / 4);
@@ -183,7 +190,7 @@ function getColor(seats) {
   for (i = 0; i < seats.length; ++ i)
     if (dp[i])
         c = multiply(c, soften(partyColor[i], seats[i] / t));
-  return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + distrctsOpacity + ")";
+  return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + districtsOpacity + ")";
 }
 
 function Election() {
@@ -197,7 +204,7 @@ function Election() {
       p = argmax(voters[k].slice(2).map((v, i) => (v + pcp[i])));
       voting[i][p] ++;
     }
-    seats[i] = defaultVoting(voting[i]);
+    seats[i] = selectionAlgorithm(voting[i]);
 
     seats[i].forEach(function(x, i) {
       stats[i][x] ++;
@@ -223,8 +230,8 @@ function drawPalette(ctx) {
       ctx.strokeStyle = "black";
       ctx.rect(80 + 40 * j, 30 * (i + 1), 25, 25);
       var c = soften(partyColor[i], j / 3);
-      // console.log("rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + distrctsOpacity + ")");
-      ctx.fillStyle = "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + distrctsOpacity + ")";
+      // console.log("rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + districtsOpacity + ")");
+      ctx.fillStyle = "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + districtsOpacity + ")";
       ctx.stroke();
       ctx.fill();
       ctx.closePath();
@@ -252,6 +259,11 @@ function drawMap() {
   if (isNaN(x)) x = 0.3;
   voterHeatmapOpacity = x;
   document.getElementById("opacity").value = x;
+
+  x = Math.min(1, Math.max(0, parseFloat(document.getElementById("dopacity").value)));
+  if (isNaN(x)) x = 0.8;
+  districtsOpacity = x;
+  document.getElementById("dopacity").value = x;
 
 
   console.log("Hello!");
@@ -359,5 +371,10 @@ window.onload = function() {
   document.getElementById("p3p").oninput = function() {
     pcp[2] = document.getElementById("p3p").value / 1000.;
     document.getElementById("p3pv").innerHTML = pcp[2].toFixed(3);
+  }
+  document.getElementById("alg").onchange = function() {
+    var v = document.getElementById("alg").value;
+    if (v == 2) selectionAlgorithm = winnerTakesAll;
+    else selectionAlgorithm = defaultVoting;
   }
 }

@@ -48,37 +48,42 @@
     <div class="b">
         <input type="file" id="mapdata"></input>
         <p class="indent"><button onclick="onFileUpload()">Load</button></p>
-        <p class="indent"><button onclick="drawMap()">refresh</button></p>
+        <p class="indent"><button onclick="drawMap()">Refresh</button></p>
         <p class="indent"><button onclick="downloadImage()">Open as Image</button></p>
         <p class="indent" id="status" style="color: red; display: inline;"></p>
 
     </div>
-    <div class="b" id="heatmap">
+    <div class="b">
         <p>Board size: <input type="text" id="boardsize"></input></p>
-        <p class="indent"><input type="checkbox" id="toggleHeatmap">Draw Voter's heatmap</input></p>
-        <p class="indent">Heatmap opacity: <input type="text" id="opacity" value="0.3"></input></p>
-        <p class="indent"><input type="checkbox" id="hp1" checked="true">Party 1</input></p>
-        <p class="indent"><input type="checkbox" id="hp2">Party 2</input></p>
-        <p class="indent"><input type="checkbox" id="hp3">Party 3</input></p>
+        <p class="indent">Number of representatives per district:
+        <select id="alg">
+            <option value="1">3</option>
+            <option value="2">1</option>
+        </select></p>
     </div>
-    <div class="b" id="districts">
-        <p><input type="checkbox" id="toggleDistricts" checked="true">Draw distrcts</input></p>
+    <div class="b">
+        <p><input type="checkbox" id="toggleHeatmap">Draw Voters</input></p>
+        <p class="indent">Heatmap opacity: <input type="text" id="opacity" value="0.3"></input></p>
+        <p class="indent"><input type="checkbox" id="toggleDistricts" checked="true">Draw distrcts</input></p>
+        <p class="indent">Districts opacity: <input type="text" id="dopacity" value="0.8"></input></p>
+    </div>
+    <div class="b">
         <!-- <p class="indent">Result color opacity: <input type="text" id="opacity" value="0.3"></input></p> -->
-        <p class="indent">Campaign performance:</p>
-        <p class="indent">Party 1: <input type="range" id="p1p" min="0" max="1000" value="0"></input></p><p id="p1pv">0.000</p>
-        <p class="indent">Party 2: <input type="range" id="p2p" min="0" max="1000" value="0"></input></p><p id="p2pv">0.000</p>
-        <p class="indent">Party 3: <input type="range" id="p3p" min="0" max="1000" value="0"></input></p><p id="p3pv">0.000</p>
+        <!-- <p>Campaign performance:</p> -->
+        <p><input type="checkbox" id="hp1" checked="true"></input>Party 1: <input type="range" id="p1p" min="0" max="1000" value="0"></input></p><p id="p1pv">0.000</p>
+        <p class="indent"><input type="checkbox" id="hp2"></input>Party 2: <input type="range" id="p2p" min="0" max="1000" value="0"></input></p><p id="p2pv">0.000</p>
+        <p class="indent"><input type="checkbox" id="hp3"></input>Party 3: <input type="range" id="p3p" min="0" max="1000" value="0"></input></p><p id="p3pv">0.000</p>
     </div>
     </div>
     <div class="rt">
         <table id="result">
             <tr>
-                <td></td>
-                <td>0 seat</td>
-                <td>1 seat</td>
-                <td>2 seats</td>
-                <td>3 seats</td>
-                <td>Total seats</td>
+                <th>Summary</th>
+                <th>0 rep</th>
+                <th>1 rep</th>
+                <th>2 reps</th>
+                <th>3 reps</th>
+                <th>Total reps</th>
             </tr>
             <tr>
                 <th> Party 1 </th>
