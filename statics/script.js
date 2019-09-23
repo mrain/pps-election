@@ -1,6 +1,15 @@
+var canvas = document.getElementById("canvas");
 const scale = 1000.0;
-const boardsize = 550.0;
-const offset = 100.0;
+const offset = 10.0;
+const _radius = 3.0;
+var boardsize;
+var prefColor = [
+    [255, 0, 0],
+    [0, 255, 0],
+    [0, 0, 255],
+];
+var voters;
+var districts;
 
 function transform(coordinate) {
     var [x, y] = coordinate;
@@ -18,31 +27,14 @@ function onFileUpload() {
     fileReader.readAsText(fileToLoad, "UTF-8");
 }
 
-var voters;
-var districts;
-var hDatas;
-
 function loadData(data) {
     voters = [];
     districts = [];
-    hDatas = [];
     var lines = data.split("\n");
     var n, p, i, j, it = 0, m;
     [n, p] = lines[it].split(" ").map(x => parseInt(x));
-    for (j = 0; j < p; ++ j) {
-        hDatas.push([]);
-    }
     for (it = 1; it <= n; ++ it) {
-        var line = lines[it].split(" ").map(x => parseFloat(x));
-        voters.push({
-            "x" : line[0],
-            "y" : line[1],
-            "pref" : line.slice(2),
-        });
-        for (j = 0; j < p; ++ j) {
-            coords = transform([line[0], line[1]]);
-            hDatas[j].push([coords[0], coords[1], line[2 + j] / 2.]);
-        }
+        voters.push(lines[it].split(" ").map(x => parseFloat(x)));
     }
     m = parseInt(lines[it ++]);
     while (m --) {
@@ -54,15 +46,15 @@ function loadData(data) {
         districts.push(district);
     }
     // console.log(voters);
-    // console.log(hDatas);
     drawMap();
     // TODO
 }
 
-function drawPolygon(ctx, coordinates, color) {
+function drawPolygon(coordinates, color) {
+    ctx = canvas.getContext('2d');
     ctx.beginPath();
     ctx.fillStyle = color;
-    ctx.linewidth = 1;
+    ctx.linewidth = 0.1;
     ctx.strokeStyle="black";
     var x, y;
     [x, y] = transform(coordinates[0]);
@@ -78,27 +70,49 @@ function drawPolygon(ctx, coordinates, color) {
     ctx.fill();
 }
 
+function drawVoter(voter) {
+    ctx = canvas.getContext('2d');
+    ctx.globalCompositeOperation = "multiply";
+    var i, x, y;
+    [x,y] = transform([voter[0], voter[1]]);
+
+    ctx.beginPath();
+    ctx.fillStyle = "red";
+    ctx.arc(x, y, _radius, 0, Math.PI * 2);
+    ctx.fill();
+    // console.log(voter);
+    // for (i = 2; i < voter.length; ++ i) {
+    //     var radgrad = ctx.createRadialGradient(x,y,0,x,y,_radius);
+    //     var strength = voter[i - 2];
+    //     var r = prefColor[i - 2][0], g = prefColor[i - 2][1], b = prefColor[i - 2][2];
+    //     radgrad.addColorStop(0, 'rgba(' + r + ',' + g + ',' + b + ',' + strength + ')');
+    //     radgrad.addColorStop(0, 'rgba(' + r + ',' + g + ',' + b + ',' + strength * 0.5 + ')');
+    //     radgrad.addColorStop(0, 'rgba(' + r + ',' + g + ',' + b + ',' + 0 + ')');
+    //     // draw shape
+    //     ctx.fillStyle = radgrad;
+    //     ctx.fillRect(0,0,canvas.width,canvas.height);
+    // }
+}
+
 function drawMap() {
-    canvas = document.getElementById('canvas');
     ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.globalAlpha = 0.2;
+    // ctx.globalAlpha = 0.2;
 
-    if (hDatas) {
-        simpleheat('canvas').data(hDatas[0]).gradient({1 : "rgba(255, 0, 0, 50)"}).draw();
-        simpleheat('canvas').data(hDatas[1]).gradient({1 : "rgba(0, 255, 0, 50)"}).draw();
+    console.log("Hello!");
+    var board = [[0.0, 0.0], [1000.0, 0.0], [500.0, Math.sqrt(3) * 500]];
+    drawPolygon(board, "rgba(255,255,255,0)");
+
+    if (voters) {
+        voters.forEach( function (voter) { drawVoter(voter); } );
     }
 
-    var board = [[0.0, 0.0], [1000.0, 0.0], [500.0, Math.sqrt(3) * 500]];
-    drawPolygon(ctx, board, "rgba(255,255,255,0)");
-
-    districts.forEach(
-        function(district) {
-          console.log(district);
-          drawPolygon(ctx, district, "rgba(255,255,255,0)");
-        }
-    );
-
+    if (districts) {
+        districts.forEach(
+            function(district) { drawPolygon(district, "rgba(255,255,255,0)"); }
+        );
+    }
+    console.log("Finished!");
 }
 
 function ajax(retries, timeout) {
@@ -142,5 +156,21 @@ function ajax(retries, timeout) {
     xhttp.send();
 }
 
-ajax(10, 1000);
-// drawMap();
+function resizeCanvas() {
+    var x = Math.max(300, parseInt(document.getElementById("boardsize").value));
+    canvas.width = x;
+    canvas.height = x;
+    boardsize = x - offset;
+    document.getElementById("boardsize").value = x;
+    drawMap();
+}
+
+window.onload = function() {
+    var defaultBoardSize = 1800;
+    document.getElementById("boardsize").value = defaultBoardSize;
+    canvas.width = defaultBoardSize;
+    canvas.height = defaultBoardSize;
+    boardsize = canvas.width - 10;
+    ajax(10, 1000);
+    drawMap();
+}

@@ -10,6 +10,13 @@
             margin-right: auto;
             display: block;
         }
+        html {
+            font-size: 12px;
+        }
+
+        div {
+            margin-top: 2px;
+        }
     </style>
 </head>
 <body>
@@ -17,13 +24,17 @@
     <div>
         <input type="file" id="mapdata"></input>
         <button onclick="onFileUpload()">Load map</button>
-        <p id="load-status" style="color: red; display: inline; font-size: 12px;"></p>
+        <p id="load-status" style="color: red; display: inline;"></p>
+
+    </div>
+    <div>
+        Board size: <input type="text" id="boardsize"></input>
+        <button onclick="resizeCanvas()">refresh</button>
     </div>
     <center>
-        <canvas id="canvas" width="800px" height="600px" style="margin: auto"></canvas>
+        <canvas id="canvas"style="margin: auto"></canvas>
     </center>
 
-    <script type="text/javascript" src="simpleheat.js"></script>
     <script type="text/javascript" src="script.js"></script>
 </body>
 </html>
