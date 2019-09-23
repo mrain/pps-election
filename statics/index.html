@@ -14,22 +14,41 @@
             font-size: 12px;
         }
 
-        div {
+        div.b {
             margin-top: 2px;
+        }
+        p {
+          display: inline;
+        }
+        p.indent {
+          padding-left: 10px;
         }
     </style>
 </head>
 <body>
     <h2 style="text-align: center;">PPS 2019 - Election</h2>
-    <div>
+    <div class="b">
         <input type="file" id="mapdata"></input>
-        <button onclick="onFileUpload()">Load map</button>
-        <p id="load-status" style="color: red; display: inline;"></p>
+        <p class="indent"><button onclick="onFileUpload()">Load</button></p>
+        <p class="indent"><button onclick="drawMap()">refresh</button></p>
+        <p class="indent" id="status" style="color: red; display: inline;"></p>
 
     </div>
-    <div>
-        Board size: <input type="text" id="boardsize"></input>
-        <button onclick="resizeCanvas()">refresh</button>
+    <div class="b" id="heatmap">
+        <p>Board size: <input type="text" id="boardsize"></input></p>
+        <p class="indent"><input type="checkbox" id="toggleHeatmap">Draw Voter's heatmap</input></p>
+        <p class="indent">Heatmap opacity: <input type="text" id="opacity" value="0.3"></input></p>
+        <p class="indent"><input type="checkbox" id="hp1" checked="true">Party 1</input></p>
+        <p class="indent"><input type="checkbox" id="hp2">Party 2</input></p>
+        <p class="indent"><input type="checkbox" id="hp3">Party 3</input></p>
+    </div>
+    <div class="b" id="districts">
+        <p><input type="checkbox" id="toggleDistricts" checked="true">Draw distrcts</input></p>
+        <!-- <p class="indent">Result color opacity: <input type="text" id="opacity" value="0.3"></input></p> -->
+        <p class="indent">Campaign performance:</p>
+        <p class="indent">Party 1: <input type="range" id="p1p" min="0" max="1000" value="0"></input></p><p id="p1pv">0.000</p>
+        <p class="indent">Party 2: <input type="range" id="p2p" min="0" max="1000" value="0"></input></p><p id="p2pv">0.000</p>
+        <p class="indent">Party 3: <input type="range" id="p3p" min="0" max="1000" value="0"></input></p><p id="p3pv">0.000</p>
     </div>
     <center>
         <canvas id="canvas"style="margin: auto"></canvas>
