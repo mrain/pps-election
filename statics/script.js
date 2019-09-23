@@ -279,6 +279,12 @@ function ajax(retries, timeout) {
   xhttp.send();
 }
 
+function downloadImage() {
+  var d = canvas.toDataURL("image/png");
+  var w=window.open('about:blank','image from canvas');
+  w.document.write("<img src='"+d+"' alt='from canvas'/>");
+}
+
 window.onload = function() {
   var defaultBoardSize = 2400;
   document.getElementById("boardsize").value = defaultBoardSize;
