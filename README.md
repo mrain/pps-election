@@ -6,7 +6,7 @@ TAs: Vaibhav Darbari, Chengyu Lin
 
 # User Guide
 First thing you need to know is our GUI `statics/index.html`. You may directly open it and
-load your file to visualize your result. 2 sample maps and 1 sample result file are provided.
+load your file to visualize your result. 2 sample maps (in directory `maps`) and 1 sample result file `result.dat` are provided.
 
 In this project, you can implement your ideas using other languages and
 use this library to verify your result. If you choose our platform,
