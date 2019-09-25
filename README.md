@@ -14,7 +14,11 @@ you need to implement the following interfaces:
 * `election.sim.MapGenerator`
 * `election.sim.DistrictGenerator`
 
+And you shall put your codes in directory `election/g[n]` where `n` is your group number.
 You may refer to files in `election/g0` for details.
+
+If you are submitting map file, please put your map file
+in directory `maps/g[n]` where `n` is your group number.
 
 Following 2 modules are used to run/verify your result:
 * `election.sim.MapUtils`
