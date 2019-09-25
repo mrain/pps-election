@@ -29,5 +29,4 @@ hs_err_pid*
 # Mac .DS_Store file
 .DS_Store
 
-# ignore changes to Makefile
-Makefile
+# ignore changes to sample result file
