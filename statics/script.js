@@ -133,18 +133,29 @@ function drawVoter(voter) {
   // const blend = (rgb1, rgb2) => rgb1.map((c, i) => Math.floor(c + rgb2[i]))
   // const invert = (rgb) => rgb.map((c) => (255 - c));
   var c = [255,255,255];
-  for (i = 2; i < voter.length; ++ i)
-    if (dp[i - 2]) {
-      var coeff = (voter[i] + pcp[i - 2]) / 2;
-      // var c = soften(partyColor[i - 2], coeff);
-      c = multiply(soften(partyColor[i - 2], coeff), c);
-      // console.log(c);
-    }
-  var color = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + voterHeatmapOpacity + ')';
-  ctx.beginPath();
-  ctx.fillStyle = color;
-  ctx.arc(x, y, _radius, 0, Math.PI * 2);
-  ctx.fill();
+  if (document.getElementById("vcs").value == 1) {
+    p = argmax(voter.slice(2).map((v, i) => (v + pcp[i])));
+    if (!dp[p]) return;
+    c = partyColor[p];
+    var color = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + voterHeatmapOpacity + ')';
+    ctx.beginPath();
+    ctx.fillStyle = color;
+    ctx.arc(x, y, _radius, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    for (i = 2; i < voter.length; ++ i)
+      if (dp[i - 2]) {
+        var coeff = (voter[i] + pcp[i - 2]) / 2;
+          // var c = soften(partyColor[i - 2], coeff);
+        c = multiply(soften(partyColor[i - 2], coeff), c);
+          // console.log(c);
+      }
+      var color = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + voterHeatmapOpacity + ')';
+      ctx.beginPath();
+      ctx.fillStyle = color;
+      ctx.arc(x, y, _radius, 0, Math.PI * 2);
+      ctx.fill();
+  }
 }
 
 function logStatus(status) {
