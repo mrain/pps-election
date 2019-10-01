@@ -46,7 +46,7 @@ Following 2 modules are used to run/verify your result:
 
 # Map File Specification
  * The board is a giant equilateral triangle with edge length 1000.
-    * Three vertices are `(0, 0)`, `(0, 1000)` and `(500, 500*sqrt(3))`.
+    * Three vertices are `(0, 0)`, `(1000, 0)` and `(500, 500*sqrt(3))`.
  * First line contains 2 integers: `numVoters` and `numParties`.
    They correspond to the number of voters and the number of parties, respectively.
  * The following `numVoters` lines contains the information for each voter.
