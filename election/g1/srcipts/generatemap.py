@@ -4,12 +4,14 @@ import importlib
 
 def save_map_to_file(filepath, voters, districts, parties):
     file = open(filepath, 'w')
-    file.write(f'{str(len(voters))} {str(parties)}')
+    file.write(f'{str(len(voters))} {str(parties)}\n')
     for voter in voters:
         file.write(voter.get_file_line())
-    file.write(f'{str(len(districts))}')
+        file.write('\n')
+    file.write(f'{str(len(districts))}\n')
     for district in districts:
         file.write(district.get_file_line())
+        file.write('\n')
     file.close()
 
 
