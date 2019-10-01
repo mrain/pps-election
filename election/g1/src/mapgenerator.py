@@ -33,11 +33,11 @@ def get_voters(num_voters: int, num_parties: int, seed: int) -> List[Voter]:
         'percentage': 0.2
     }, {
         'type': 'normal',
-        'params': {'mean': (), 'sigma': ()},
+        'params': {'mean': (), 'sigma': ()},  # TODO: Add proper city 1 params
         'percentage': 0.1
     }, {
         'type': 'normal',
-        'params': {'mean': (), 'sigma': ()},
+        'params': {'mean': (), 'sigma': ()},  # TODO: Add proper city 2 params
         'percentage': 0.1
     }]
     # Sample the population
