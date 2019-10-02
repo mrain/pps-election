@@ -1,11 +1,13 @@
-from typing import List
-
-from election.g1.src.voter import Voter, Point
-import numpy as np
 import math
 import random
+from typing import List
+
+import numpy as np
+
+from election.g1.src.voter import Voter, Point
 
 num_parties = 3
+
 
 def is_in_triangle(x: int, y: int):
     from shapely.geometry.polygon import Polygon
@@ -27,7 +29,7 @@ def coord_transform(triangle_coord):
     return (x, y)
 
 
-def get_normal(num_voters: int, mean_x, mean_y, std_x, std_y, seed: int=1234, num_parties: int=3) -> List[Voter]:
+def get_normal(num_voters: int, mean_x, mean_y, std_x, std_y, seed: int = 1234) -> List[Voter]:
     # @TODO try generate distribution with numpy multivairate normal distribution
     np.random.seed(seed)
     voters = []
@@ -36,22 +38,20 @@ def get_normal(num_voters: int, mean_x, mean_y, std_x, std_y, seed: int=1234, nu
         y = np.random.normal(loc=mean_y, scale=std_y)
         if is_in_triangle(x, y):
             loc = Point(x, y)
-            pref = [random.random() for _ in range(num_parties)]
-            voter = Voter(location=loc, preference=pref)
+            voter = Voter(location=loc)
             voters.append(voter)
     return voters
 
 
-def get_uniform(num_voters: int, seed: int=1234, num_parties: int=3) -> List[Voter]:
+def get_uniform(num_voters: int, seed: int = 1234) -> List[Voter]:
     np.random.seed(seed)
     voters = []
     while len(voters) < num_voters:
         x = np.random.uniform(low=0, high=1000)
-        y = np.random.uniform(loc=0, high=500*math.sqrt(3))
+        y = np.random.uniform(low=0, high=500 * math.sqrt(3))
         if is_in_triangle(x, y):
             loc = Point(x, y)
-            pref = [random.random() for _ in range(num_parties)]
-            voter = Voter(location=loc, preference=pref)
+            voter = Voter(location=loc)
             voters.append(voter)
     return voters
 
@@ -100,45 +100,50 @@ def get_party_preference(voters: List[Voter], num_parties: int, seed: int) -> Li
         scores = get_party_score(voter, num_parties)
         prefs_raw = [np.random.normal(score, 0.3) for score in scores]
         prefs = [max(min(pref, 1), 0) for pref in prefs_raw]
-        new_voter = Voter(location = voter.location, preferences = prefs)
+        new_voter = Voter(location=voter.location, preference=prefs)
         new_voters.append(new_voter)
     return new_voters
 
 
-def get_coast(num_voters: int, seed: int, scale = 500) -> List[Voter]:
+def get_coast(num_voters: int, seed: int, scale=500) -> List[Voter]:
     # @TODO Patrick
     # Assuming the left side of the triangle is the coast
     np.random.seed(seed)
     voters = []
     while len(voters) < num_voters:
         d = np.random.exponential(scale)
-        y = np.random.uniform(loc = 0, high = 500 * math.sqrt(3))
+        y = np.random.uniform(low=0, high=500 * math.sqrt(3))
         triangle_coord = (d, y)
         x, y = coord_transform(triangle_coord)
         if is_in_triangle(x, y):
             loc = Point(x, y)
-            voter = Voter(location = loc)
+            voter = Voter(location=loc)
             voters.append(voter)
     return voters
 
 
 def get_voters(num_voters: int, num_parties: int, seed: int) -> List[Voter]:
     # Define population distribution
-    params = [{
-        'type': 'coast',
-        'percentage': 0.6
-    }, {
-        'type': 'uniform',
-        'percentage': 0.2
-    }, {
-        'type': 'normal',
-        'params': {'mean': (), 'sigma': ()},  # TODO: Add proper city 1 params
-        'percentage': 0.1
-    }, {
-        'type': 'normal',
-        'params': {'mean': (), 'sigma': ()},  # TODO: Add proper city 2 params
-        'percentage': 0.1
-    }]
+    params = [
+        {
+            'type': 'coast',
+            'percentage': 0.4
+        },
+        {
+            'type': 'uniform',
+            'percentage': 0.2
+        },
+        {
+            'type': 'normal',
+            'params': {'mean_x': 500, 'mean_y': 500, 'std_x': 20, 'std_y': 50},
+            'percentage': 0.15
+        },
+        {
+            'type': 'normal',
+            'params': {'mean_x': 300, 'mean_y': 300, 'std_x': 30, 'std_y': 10},
+            'percentage': 0.25
+        }
+    ]
     # Sample the population
     voters = []
     for index, param in enumerate(params):
@@ -150,7 +155,15 @@ def get_voters(num_voters: int, num_parties: int, seed: int) -> List[Voter]:
         elif param['type'] == 'uniform':
             voters += get_uniform(number_to_generate, seed=seed)
         elif param['type'] == 'normal':
-            voters += get_normal(number_to_generate, param['params']['mean'], param['params']['sigma'], seed=seed)
+            voters += get_normal(
+                number_to_generate,
+                param['params']['mean_x'],
+                param['params']['mean_y'],
+                param['params']['std_x'],
+                param['params']['std_y'],
+                seed=seed
+            )
+        print('.', end='', flush=True)
     # Generate party preference
     voters = get_party_preference(voters, num_parties, seed)
     return voters
