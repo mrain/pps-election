@@ -14,7 +14,7 @@ class Voter:
         self.location = location
         self.preference = preference
 
-    def to_file_line(self) -> str:
+    def get_file_line(self) -> str:
         line = f'{str(self.location.x)} {str(self.location.y)}'
         for p in self.preference:
             line += ' ' + str(p)
