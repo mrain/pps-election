@@ -3,6 +3,9 @@ from typing import List
 from election.g1.src.voter import Voter, Point
 import numpy as np
 import math
+import random
+
+num_of_party = 3
 
 def is_in_triangle(x: int, y: int):
     from shapely.geometry.polygon import Polygon
@@ -19,7 +22,8 @@ def get_normal(num_voters: int, mean_x, mean_y, std_x, std_y, seed: int=1234) ->
         y = np.random.normal(loc=mean_y, scale=std_y)
         if is_in_triangle(x, y):
             loc = Point(x, y)
-            voter = Voter(location=loc)
+            pref = [random.random() for _ in range(num_of_party)]
+            voter = Voter(location=loc, preference=pref)
             voters.append(voter)
     return voters
 
@@ -31,8 +35,9 @@ def get_uniform(num_voters: int, seed: int=1234) -> List[Voter]:
         x = np.random.uniform(low=0, high=1000)
         y = np.random.uniform(loc=0, high=500*math.sqrt(3))
         if is_in_triangle(x, y):
-            pos = Point(x, y)
-            voter = Voter(location=pos)
+            loc = Point(x, y)
+            pref = [random.random() for _ in range(num_of_party)]
+            voter = Voter(location=loc, preference=pref)
             voters.append(voter)
     return voters
 
