@@ -1,4 +1,4 @@
-package election.g5;
+package election.g1;
 
 import java.awt.geom.*;
 
