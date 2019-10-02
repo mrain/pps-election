@@ -13,7 +13,7 @@ def is_in_triangle(x: int, y: int):
     triangle = Polygon([(0, 0), (0, 1000), (500, 500*math.sqrt(3))])
     return triangle.contains(P(x, y))
 
-def get_normal(num_voters: int, mean_x, mean_y, std_x, std_y, seed: int=1234) -> List[Voter]:
+def get_normal(num_voters: int, mean_x, mean_y, std_x, std_y, seed: int=1234, num_parties: int=3) -> List[Voter]:
     # @TODO try generate distribution with numpy multivairate normal distribution
     np.random.seed(seed)
     voters = []
@@ -22,13 +22,13 @@ def get_normal(num_voters: int, mean_x, mean_y, std_x, std_y, seed: int=1234) ->
         y = np.random.normal(loc=mean_y, scale=std_y)
         if is_in_triangle(x, y):
             loc = Point(x, y)
-            pref = [random.random() for _ in range(num_of_party)]
+            pref = [random.random() for _ in range(num_parties)]
             voter = Voter(location=loc, preference=pref)
             voters.append(voter)
     return voters
 
 
-def get_uniform(num_voters: int, seed: int=1234) -> List[Voter]:
+def get_uniform(num_voters: int, seed: int=1234, num_parties: int=3) -> List[Voter]:
     np.random.seed(seed)
     voters = []
     while len(voters) < num_voters:
@@ -36,7 +36,7 @@ def get_uniform(num_voters: int, seed: int=1234) -> List[Voter]:
         y = np.random.uniform(loc=0, high=500*math.sqrt(3))
         if is_in_triangle(x, y):
             loc = Point(x, y)
-            pref = [random.random() for _ in range(num_of_party)]
+            pref = [random.random() for _ in range(num_parties)]
             voter = Voter(location=loc, preference=pref)
             voters.append(voter)
     return voters
