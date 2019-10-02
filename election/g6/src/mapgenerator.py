@@ -12,10 +12,12 @@ num_parties = 3
 def is_in_triangle(x: int, y: int):
     from shapely.geometry.polygon import Polygon
     from shapely.geometry import Point as P
-    triangle = Polygon([(0, 0), (1000, 0), (500, 500*math.sqrt(3))])
+    triangle = Polygon([(0, 0), (1000, 0), (500, 500 * math.sqrt(3))])
     return triangle.contains(P(x, y))
 
-def get_normal(num_voters: int, mean_x, mean_y, std_x, std_y, seed: int=1234, num_parties: int=3, batch_size: int=64) -> List[Voter]:
+
+def get_normal(num_voters: int, mean_x, mean_y, std_x, std_y, seed: int = 1234, num_parties: int = 3,
+               batch_size: int = 64) -> List[Voter]:
     # @TODO try generate distribution with numpy multivairate normal distribution
     np.random.seed(seed)
     voters = []
@@ -32,12 +34,12 @@ def get_normal(num_voters: int, mean_x, mean_y, std_x, std_y, seed: int=1234, nu
             return voters[:num_voters]
 
 
-def get_uniform(num_voters: int, seed: int=1234, num_parties: int=3, batch_size: int=64) -> List[Voter]:
+def get_uniform(num_voters: int, seed: int = 1234, num_parties: int = 3, batch_size: int = 64) -> List[Voter]:
     np.random.seed(seed)
     voters = []
     while True:
         x_batch = np.random.uniform(low=0, high=1000, size=(batch_size,))
-        y_batch = np.random.uniform(low=0, high=500*math.sqrt(3), size=(batch_size,))
+        y_batch = np.random.uniform(low=0, high=500 * math.sqrt(3), size=(batch_size,))
         for x, y in zip(x_batch, y_batch):
             if is_in_triangle(x, y):
                 loc = Point(x, y)
