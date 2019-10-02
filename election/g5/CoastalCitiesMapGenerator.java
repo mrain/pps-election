@@ -12,6 +12,8 @@ public class CoastalCitiesMapGenerator implements election.sim.MapGenerator {
     private class City {
         // Position of the city
         private Point2D.Double pos;
+        // Preference bias for party 1 and 2
+        private double p1Bias, p2Bias;
 
         // Radius of the city; unused for now
         // double radius;
@@ -19,8 +21,18 @@ public class CoastalCitiesMapGenerator implements election.sim.MapGenerator {
         // Number of voters in a city; unused for now
         // int population = 0;
 
-        public City(Point2D.Double pos) { this.pos = pos; }
+        public City(Point2D.Double pos) {
+            this.pos = pos;
+
+            // TODO: Compute this based on distance to coast w/ Jaewan's idea rather than random
+            Random random = new Random();
+            this.p1Bias = random.nextDouble();
+            this.p2Bias = random.nextDouble();
+        }
+
         public Point2D.Double getPos() { return this.pos; }
+        public double getP1Bias() { return this.p1Bias; }
+        public double getP2Bias() { return this.p2Bias; }
 
         // Returns distance of pos to city center.
         public double getDist(Point2D.Double pos) {
@@ -74,6 +86,8 @@ public class CoastalCitiesMapGenerator implements election.sim.MapGenerator {
         return desirability;
         */
     }
+
+    public double getDesirability(City city) { return getDesirability(city.getPos()); }
 
     public double getNearestCoastDist(Point2D.Double pos) {
         double x = pos.getX();
@@ -164,17 +178,22 @@ public class CoastalCitiesMapGenerator implements election.sim.MapGenerator {
 
             // Compute distance to closest city
             double distToClosestCity = 1000.0;
+            City closestCity = null;
             for (City city : cities) {
                 double distToCity = city.getDist(pos);
-                if (distToCity < distToClosestCity)
+                if (distToCity < distToClosestCity) {
                     distToClosestCity = distToCity;
+                    closestCity = city;
+                }
             }
 
             // The closer to the closest city, the higher the chance a voter is generated there
             if (random.nextDouble() > distToClosestCity/(random.nextGaussian()*50+100)) {
                 List<Double> pref = new ArrayList<Double>();
-                for (int j = 0; j < numParties; ++j)
-                    pref.add(random.nextDouble());
+                pref.add(random.nextDouble() * closestCity.getP1Bias());
+                pref.add(random.nextDouble() * closestCity.getP2Bias());
+                for (int j = 0; j < numParties - 2; ++j)
+                    pref.add(random.nextDouble() * 0.2);
 
                 voters.add(new Voter(pos, pref));
                 totalDist += distToClosestCity;
