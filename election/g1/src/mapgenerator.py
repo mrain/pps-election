@@ -1,16 +1,40 @@
 from typing import List
 
-from election.g1.src.voter import Voter
+from election.g1.src.voter import Voter, Point
+import numpy as np
+import math
+
+def is_in_triangle(x: int, y: int):
+    from shapely.geometry.polygon import Polygon
+    from shapely.geometry import Point as P
+    triangle = Polygon([(0, 0), (0, 1000), (500, 500*math.sqrt(3))])
+    return triangle.contains(P(x, y))
+
+def get_normal(num_voters: int, mean_x, mean_y, std_x, std_y, seed: int=1234) -> List[Voter]:
+    # @TODO try generate distribution with numpy multivairate normal distribution
+    np.random.seed(seed)
+    voters = []
+    while len(voters) < num_voters:
+        x = np.random.normal(loc=mean_x, scale=std_x)
+        y = np.random.normal(loc=mean_y, scale=std_y)
+        if is_in_triangle(x, y):
+            loc = Point(x, y)
+            voter = Voter(location=loc)
+            voters.append(voter)
+    return voters
 
 
-def get_normal(num_voters: int, mean, sigma, seed: int) -> List[Voter]:
-    # @TODO Derek
-    pass
-
-
-def get_uniform(num_voters: int, seed: int) -> List[Voter]:
-    # @TODO Derek
-    pass
+def get_uniform(num_voters: int, seed: int=1234) -> List[Voter]:
+    np.random.seed(seed)
+    voters = []
+    while len(voters) < num_voters:
+        x = np.random.uniform(low=0, high=1000)
+        y = np.random.uniform(loc=0, high=500*math.sqrt(3))
+        if is_in_triangle(x, y):
+            pos = Point(x, y)
+            voter = Voter(location=pos)
+            voters.append(voter)
+    return voters
 
 
 def get_party_preference(voters: List[Voter], num_parties: int, seed: int) -> List[Voter]:
