@@ -3,8 +3,9 @@ import random
 from typing import List
 
 import numpy as np
+from shapely.geometry import Point
 
-from election.g6.src.voter import Voter, Point
+from election.g6.src.voter import Voter
 
 num_parties = 3
 

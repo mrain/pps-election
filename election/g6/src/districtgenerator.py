@@ -1,6 +1,6 @@
 from typing import List
 
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point
 
 from election.g6.src.voter import Voter
 

@@ -1,8 +1,8 @@
 from typing import List, Optional
 
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point
 
-from election.g6.src.voter import Voter, Point
+from election.g6.src.voter import Voter
 from election.g6.src.utils import batch
 from election.g6.src.exceptions import InvalidMapFile
 
