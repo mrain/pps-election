@@ -34,6 +34,7 @@ If you want to modify the default parameters:
 python3.7 election/g6/srcipts/generatemap.py \\
     -m election.g6.src.districtgenerator \\
     -i maps/g6/3.map \\
+    -i maps/g6/3_d.map \\
     --seed 42 \\
     --representatives 3
 ```

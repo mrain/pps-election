@@ -7,7 +7,7 @@ from election.g6.src.map import Map
 def main(options):
     generator_module = importlib.import_module(options.module)
     m = Map.from_file(options.input)
-    m.districts = generator_module.get_districts(m.voters, m.parties, options.seed)
+    m.districts = generator_module.get_districts(m.voters, options.representatives, options.seed)
     m.to_file(options.output)
 
 
