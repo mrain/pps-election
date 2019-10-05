@@ -3,18 +3,16 @@ import random
 from typing import List
 
 import numpy as np
-from shapely.geometry import Point
+from shapely.geometry import Point, Polygon
 
 from election.g6.src.voter import Voter
 
 num_parties = 3
+triangle = Polygon([(0, 0), (1000, 0), (500, 500 * math.sqrt(3))])
 
 
 def is_in_triangle(x: int, y: int):
-    from shapely.geometry.polygon import Polygon
-    from shapely.geometry import Point as P
-    triangle = Polygon([(0, 0), (1000, 0), (500, 500 * math.sqrt(3))])
-    return triangle.contains(P(x, y))
+    return triangle.contains(Point(x, y))
 
 
 def get_normal(num_voters: int, mean_x, mean_y, std_x, std_y, seed: int = 1234, num_parties: int = 3,
