@@ -34,13 +34,14 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             for (int i = 0; i < 6; ++ i) {
                 double top = height * (6 - i) / 6.0;
                 double btm = top - height / 6.0;
-                double left = iLength / 2 - hstep / 2 * (i + 1);
+                double left = iLength / 2 - hstep / 2 * (i + 1) + 50. * Math.sqrt(3);
                 for (int j = 0; j <= i; ++ j) {
                     Polygon2D polygon = new Polygon2D();
                     polygon.append(left + hstep * j, btm);
                     polygon.append(left + hstep * j + hstep, btm);
                     polygon.append(left + hstep * j + hstep / 2, top);
                     result.add(polygon);
+                    System.out.println(polygon);
                 }
                 for (int j = 0; j < i; ++ j) {
                     Polygon2D polygon = new Polygon2D();
@@ -48,6 +49,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                     polygon.append(left + hstep * j + hstep, btm);
                     polygon.append(left + hstep * j + hstep * 3 / 2, top);
                     result.add(polygon);
+                    System.out.println(polygon);
                 }
             }
         } else {
@@ -73,7 +75,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         double w = (1000.-(2.*(x+z)))/11.;
         
 
-        System.out.println("x: "+ x + " y: " + y + " z: " + z);
+        //System.out.println("x: "+ x + " y: " + y + " z: " + z);
 
         List<Polygon2D> result = new ArrayList<Polygon2D>();
 
@@ -97,7 +99,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 
             System.out.println(trap);
 
-            System.out.println("HUH!");
+            //System.out.println("HUH!");
 
             for(int i = 0; i < 11; i++) {
                 Polygon2D temp = new Polygon2D();
@@ -126,7 +128,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             System.out.println(polygon);
             System.out.println(trap);
 
-            System.out.println("DONE!");
+            //System.out.println("DONE!");
 
             //Adding in the left side
             double a = 60. * Math.PI/180.;
@@ -138,7 +140,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             double wx = w * Math.cos(a);
             double wy = w * Math.sin(a);
 
-            System.out.println("xx: " + xx + " x: " + x);
+            //System.out.println("xx: " + xx + " x: " + x);
 
             polygon = new Polygon2D();
             trap = new Polygon2D();
@@ -159,7 +161,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             System.out.println(polygon);
             System.out.println(trap);
 
-            System.out.println("HUH!");
+            //System.out.println("HUH!");
 
             for(int i = 0; i < 11; i++) {
                 Polygon2D temp = new Polygon2D();
@@ -171,7 +173,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 System.out.println(temp);
             }
 
-            System.out.println("YOOO");
+            //System.out.println("YOOO");
 
             polygon = new Polygon2D();
             trap = new Polygon2D();
@@ -189,7 +191,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             System.out.println(polygon);
             System.out.println(trap);
 
-            System.out.println("DONE!");
+            //System.out.println("DONE!");
 
             //Adding the last side 
             polygon = new Polygon2D();
@@ -208,7 +210,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             System.out.println(polygon);
             System.out.println(trap);
 
-            System.out.println("HUH!");
+            //System.out.println("HUH!");
 
             for(int i = 0; i < 11; i++) {
                 Polygon2D temp = new Polygon2D();
@@ -236,7 +238,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             System.out.println(polygon);
             System.out.println(trap);
         }
-        System.out.println("DONE!");
+        //System.out.println("DONE!");
         return result;
     }
 }
