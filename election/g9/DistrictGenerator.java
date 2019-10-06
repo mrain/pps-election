@@ -19,9 +19,9 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         numDistricts = 243 / repPerDistrict;
 
         result.addAll(getInside(repPerDistrict));
-        System.out.println(result.size());
+        //System.out.println(result.size());
         result.addAll(getOutside(repPerDistrict));
-        System.out.println(result.size());
+        //System.out.println(result.size());
         return result;
     }
 
@@ -32,8 +32,10 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         if (repPerDistrict == 3) {
             // 36 Districts;
             for (int i = 0; i < 6; ++ i) {
-                double top = height * (6 - i) / 6.0;
-                double btm = top - height / 6.0;
+                double top = (height - 50.) * (6 - i) / 6.0;
+                double btm = top - (height - 50.) / 6.0;
+                top += 50.;
+                btm += 50.;
                 double left = iLength / 2 - hstep / 2 * (i + 1) + 50. * Math.sqrt(3);
                 for (int j = 0; j <= i; ++ j) {
                     Polygon2D polygon = new Polygon2D();
@@ -41,7 +43,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                     polygon.append(left + hstep * j + hstep, btm);
                     polygon.append(left + hstep * j + hstep / 2, top);
                     result.add(polygon);
-                    System.out.println(polygon);
+                    //System.out.println(polygon);
                 }
                 for (int j = 0; j < i; ++ j) {
                     Polygon2D polygon = new Polygon2D();
@@ -49,7 +51,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                     polygon.append(left + hstep * j + hstep, btm);
                     polygon.append(left + hstep * j + hstep * 3 / 2, top);
                     result.add(polygon);
-                    System.out.println(polygon);
+                    //System.out.println(polygon);
                 }
             }
         } else {
@@ -64,15 +66,15 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 result.add(polygon);
             }
         }
-        System.out.println(result.size());
+        //System.out.println(result.size());
         return result;
     }
     public List<Polygon2D> getOutside(int repPerDistrict) {
-        double x = Math.sqrt(5000./15.*Math.sqrt(3)*(20.-Math.sqrt(3)));
-        double y = Math.sqrt(5000./15.*Math.sqrt(3)*(20.-Math.sqrt(3)))/Math.sqrt(3);
+    	double area = 2500./15. * (20.-Math.sqrt(3));
+        double x = 50. * Math.sqrt(3);
         double h = 50.;
-        double z = ((5000./15.*(20.-Math.sqrt(3))))/(y+h);
-        double w = (1000.-(2.*(x+z)))/11.;
+        double z = ((2. * area / h) - x) / 2;
+        double w = (1000.-(2.*(x+z)))/13.;
         
 
         //System.out.println("x: "+ x + " y: " + y + " z: " + z);
@@ -80,28 +82,17 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         List<Polygon2D> result = new ArrayList<Polygon2D>();
 
         if(repPerDistrict == 3) {
-            Polygon2D polygon = new Polygon2D();
             Polygon2D trap = new Polygon2D();
 
-            polygon.append(0,0);
-            polygon.append(x,0);
-            polygon.append(x,y);
-            result.add(polygon);
-
-            System.out.println(polygon);
-
-
-            trap.append(x,0);
+            trap.append(0,0);
+            trap.append(x,h);
             trap.append(x+z,0);
-            trap.append(x,y);
             trap.append(x+z,h);
             result.add(trap);
 
             System.out.println(trap);
 
-            //System.out.println("HUH!");
-
-            for(int i = 0; i < 11; i++) {
+            for(int i = 0; i < 13; i++) {
                 Polygon2D temp = new Polygon2D();
                 temp.append(x+z+w*(i),0);
                 temp.append(x+z+w*(i),h);
@@ -111,21 +102,14 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 System.out.println(temp);
             }
 
-            polygon = new Polygon2D();
             trap = new Polygon2D();
-            trap.append(x+z+w*(11), 0);
-            trap.append(x+z+w*(11), h);
-            trap.append(x+z+w*(11)+z, y);
-            trap.append(x+z+w*(11)+z, 0);
+            trap.append(x+z+w*(13), 0);
+            trap.append(x+z+w*(13), h);
+            trap.append(x+z+w*(13)+z, h);
+            trap.append(x+z+w*(13)+z+x, 0);
 
-            polygon.append(x+z+w*(11)+z, 0);
-            polygon.append(x+z+w*(11)+z, y);
-            polygon.append(x+z+w*(11)+z+x, 0);
-
-            result.add(polygon);
             result.add(trap);
 
-            System.out.println(polygon);
             System.out.println(trap);
 
             //System.out.println("DONE!");
@@ -141,60 +125,78 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             double wy = w * Math.sin(a);
 
             //System.out.println("xx: " + xx + " x: " + x);
-
-            polygon = new Polygon2D();
-            trap = new Polygon2D();
-            Polygon2D polygon1 = new Polygon2D();
             Polygon2D trap1 = new Polygon2D();
+            trap = new Polygon2D();
 
-            polygon.append(0,0);
-            polygon.append(xx,xy);
-            polygon.append(xx + y * Math.cos(b),xy + y * Math.sin(b));
-            result.add(polygon);
-
-            trap.append(xx, xy);
-            trap.append(xx + y * Math.cos(b), xy + y * Math.sin(b));
-            trap.append(xx+zx, xy+zy);
-            trap.append(xx+zx + h * Math.cos(b), xy+zy + h * Math.sin(b));
+            double tempX = 0;
+            trap.append(tempX, 0);
+            trap1.append(2*(500-tempX), 0);
+            tempX = xx + h * Math.cos(b);
+            trap.append(tempX, xy + h * Math.sin(b));
+            trap1.append(2 * (500-tempX), xy + h * Math.sin(b));
+            tempX = xx + zx;
+            trap.append(tempX, xy+zy);
+            trap1.append(2 * (500-tempX), xy+zy);
+            tempX = xx + zx + h * Math.cos(b);
+            trap.append(tempX, xy + zy + h * Math.sin(b));
+            trap1.append(2 * (500-tempX), xy + zy + h * Math.sin(b));
             result.add(trap);
+            result.add(trap1);
 
-            System.out.println(polygon);
+            System.out.println(trap.size());
+
             System.out.println(trap);
+            System.out.println(trap1);
 
-            //System.out.println("HUH!");
+            System.out.println("HUH!");
 
-            for(int i = 0; i < 11; i++) {
+            for(int i = 0; i < 13; i++) {
                 Polygon2D temp = new Polygon2D();
-                temp.append(xx+zx+wx*(i), xy+zy+wy*(i));
-                temp.append(xx+zx+wx*(i) + h * Math.cos(b), xy+zy+wy*(i) + h * Math.sin(b));
-                temp.append(xx+zx+wx*(i+1),xy+zy+wy*(i+1));
-                temp.append(xx+zx+wx*(i+1) + h * Math.cos(b) , xy+zy+wy*(i+1) + h * Math.sin(b));
+                Polygon2D temp1 = new Polygon2D();
+                tempX = xx + zx + wx*(i);
+                temp.append(tempX, xy + zy + wy * (i));
+                temp1.append(tempX + 2 * (500-tempX), xy + zy + wy * (i));
+                tempX = xx + zx + wx * (i) + h * Math.cos(b);
+                temp.append(tempX, xy+zy+wy*(i) + h * Math.sin(b));
+                temp1.append(tempX + 2 * (500-tempX), xy+zy+wy*(i) + h * Math.sin(b));
+                tempX = xx + zx + wx * (i+1);
+                temp.append(tempX,xy+zy+wy*(i+1));
+                temp1.append(tempX + 2 * (500-tempX), xy+zy+wy*(i+1));
+                tempX = xx+zx+wx*(i+1) + h * Math.cos(b);
+                temp.append(tempX , xy+zy+wy*(i+1)+h*Math.sin(b));
+                temp1.append(tempX + 2 * (500-tempX), xy+zy+wy*(i+1)+h * Math.sin(b));
                 result.add(temp);
+                result.add(temp1);
                 System.out.println(temp);
+                System.out.println(temp1);
             }
 
             //System.out.println("YOOO");
 
-            polygon = new Polygon2D();
+            trap1 = new Polygon2D();
             trap = new Polygon2D();
-            trap.append(xx+zx+wx*(11), xy+zy+wy*(11));
-            trap.append(xx+zx+wx*(11) + h * Math.cos(b), xy+zy+wy*(11) + h * Math.sin(b));
-            trap.append(xx+zx+wx*(11) + zx, xy+zy+wy*(11) + zy);
-            trap.append(xx+zx+wx*(11) * y * Math.cos(b), xy+zy+wy*(11) + y * Math.sin(b));
+            tempX = xx+zx+wx*(13);
+            trap.append(tempX, xy+zy+wy*13);
+            trap1.append(tempX + 2 * (500-tempX), xy+zy+wy*13);
+            tempX = xx+zx+wx*13 + h * Math.cos(b);
+            trap.append(tempX, xy+zy+wy*(13) + h * Math.sin(b));
+            trap1.append(tempX + 2 * (500-tempX), xy+zy+wy*13 + h * Math.sin(b));
+            tempX = xx+zx+wx*13+zx+h*Math.cos(b);
+            trap.append(tempX, xy+zy+wy*13+zy+h*Math.sin(b));
+            trap1.append(tempX + 2 * (500-tempX), xy+zy+wy*13+zy+h*Math.sin(b));
+            tempX = xx+zx+wx*13+xx+zx;
+            trap.append(tempX, xy+zy+wy*13+xy+zy);
+            trap1.append(tempX + 2 * (500-tempX), xy+zy+wy*13+xy+zy);
 
-            polygon.append(xx+zx+wx*(11)+zx, xy+zy+wy*(11)+zy);
-            polygon.append(xx+zx+wx*(11)+zx + y * Math.cos(b), xy+zy+wy*(11)+zy + y * Math.sin(b));
-            polygon.append(xx+zx+wx*(11)+zx+xx, xy+zy+wy*(11)+zy+xy);
-
-            result.add(polygon);
+            result.add(trap1);
             result.add(trap);
-            System.out.println(polygon);
             System.out.println(trap);
+            System.out.println(trap1);
 
             //System.out.println("DONE!");
 
             //Adding the last side 
-            polygon = new Polygon2D();
+            /*polygon = new Polygon2D();
             trap = new Polygon2D();
 
             polygon.append(0 + 2 * (500-0),0);
@@ -236,7 +238,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             result.add(polygon);
             result.add(trap);
             System.out.println(polygon);
-            System.out.println(trap);
+            System.out.println(trap);*/
         }
         //System.out.println("DONE!");
         return result;
