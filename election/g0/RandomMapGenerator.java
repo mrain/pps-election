@@ -8,6 +8,7 @@ import election.sim.*;
 public class RandomMapGenerator implements election.sim.MapGenerator {
     private static double scale = 1000.0;
 
+
     @Override
     public List<Voter> getVoters(int numVoters, int numParties, long seed) {
         List<Voter> ret = new ArrayList<Voter>();
@@ -32,4 +33,10 @@ public class RandomMapGenerator implements election.sim.MapGenerator {
         }
         return ret;
     }
+
+
+
+
+
+
 }
