@@ -69,6 +69,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         //System.out.println(result.size());
         return result;
     }
+    
     public List<Polygon2D> getOutside(int repPerDistrict) {
     	double area = 2500./15. * (20.-Math.sqrt(3));
         double x = 50. * Math.sqrt(3);
@@ -85,9 +86,9 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             Polygon2D trap = new Polygon2D();
 
             trap.append(0,0);
-            trap.append(x,h);
             trap.append(x+z,0);
             trap.append(x+z,h);
+            trap.append(x,h);
             result.add(trap);
 
             System.out.println(trap);
@@ -96,8 +97,8 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 Polygon2D temp = new Polygon2D();
                 temp.append(x+z+w*(i),0);
                 temp.append(x+z+w*(i),h);
-                temp.append(x+z+w*(i+1),0);
                 temp.append(x+z+w*(i+1),h);
+                temp.append(x+z+w*(i+1),0);
                 result.add(temp);
                 System.out.println(temp);
             }
@@ -130,16 +131,16 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 
             double tempX = 0;
             trap.append(tempX, 0);
-            trap1.append(2*(500-tempX), 0);
-            tempX = xx + h * Math.cos(b);
-            trap.append(tempX, xy + h * Math.sin(b));
-            trap1.append(2 * (500-tempX), xy + h * Math.sin(b));
+            trap1.append(tempX + 2*(500-tempX), 0);
             tempX = xx + zx;
             trap.append(tempX, xy+zy);
-            trap1.append(2 * (500-tempX), xy+zy);
+            trap1.append(tempX + 2 * (500-tempX), xy+zy);
             tempX = xx + zx + h * Math.cos(b);
             trap.append(tempX, xy + zy + h * Math.sin(b));
-            trap1.append(2 * (500-tempX), xy + zy + h * Math.sin(b));
+            trap1.append(tempX + 2 * (500-tempX), xy + zy + h * Math.sin(b));
+            tempX = xx + h * Math.cos(b);
+            trap.append(tempX, xy + h * Math.sin(b));
+            trap1.append(tempX + 2 * (500-tempX), xy + h * Math.sin(b));
             result.add(trap);
             result.add(trap1);
 
@@ -156,15 +157,15 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 tempX = xx + zx + wx*(i);
                 temp.append(tempX, xy + zy + wy * (i));
                 temp1.append(tempX + 2 * (500-tempX), xy + zy + wy * (i));
-                tempX = xx + zx + wx * (i) + h * Math.cos(b);
-                temp.append(tempX, xy+zy+wy*(i) + h * Math.sin(b));
-                temp1.append(tempX + 2 * (500-tempX), xy+zy+wy*(i) + h * Math.sin(b));
                 tempX = xx + zx + wx * (i+1);
                 temp.append(tempX,xy+zy+wy*(i+1));
                 temp1.append(tempX + 2 * (500-tempX), xy+zy+wy*(i+1));
                 tempX = xx+zx+wx*(i+1) + h * Math.cos(b);
                 temp.append(tempX , xy+zy+wy*(i+1)+h*Math.sin(b));
                 temp1.append(tempX + 2 * (500-tempX), xy+zy+wy*(i+1)+h * Math.sin(b));
+                tempX = xx + zx + wx * (i) + h * Math.cos(b);
+                temp.append(tempX, xy+zy+wy*(i) + h * Math.sin(b));
+                temp1.append(tempX + 2 * (500-tempX), xy+zy+wy*(i) + h * Math.sin(b));
                 result.add(temp);
                 result.add(temp1);
                 System.out.println(temp);

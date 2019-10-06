@@ -86,7 +86,7 @@ public class Run {
                     throw new IllegalArgumentException("Overlapping districts: (" + district.toString() + ") and (" + districts.get(j).toString() + ")");
             sumArea += district.area();
         }
-        if (Math.abs(sumArea - totalArea) < 1e-8) {
+        if (Math.abs(sumArea - totalArea) > 1e-8) {
             throw new IllegalArgumentException("Empty area not covered by any district.");
         }
         if (sumVoters != numVoters) {
