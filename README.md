@@ -24,7 +24,9 @@ Following 2 modules are used to run/verify your result:
 * `election.sim.MapUtils`
   * You may use to run your programed module:
   ```bash
-  $ java election.sim.MapUtils run election.g7.RandomMapGenerator -m maps/test.map -n 333333 -p 2 --seed 20190925
+  $ java election.sim.MapUtils run election.g0.RandomMapGenerator \
+         -m maps/random3.map \
+         -n 333333 -p 3 --seed 20190925
   ```
   * Also you may use it to validate your generated map file
   ```bash
