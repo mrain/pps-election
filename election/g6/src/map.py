@@ -7,6 +7,15 @@ from election.g6.src.utils import batch
 from election.g6.src.exceptions import InvalidMapFile
 
 
+def get_polygon_file_line(poly):
+    res = ""
+    x, y = poly.exterior.coords.xy
+    res += str(len(x))
+    for i in range(len(x)):
+        res += " " + str(x[i]) + " " + str(y[i])
+    return res
+
+
 class Map:
 
     def __init__(self, voters: Optional[List[Voter]], districts: Optional[List[Polygon]], number_of_parties: int = 3):
@@ -47,6 +56,6 @@ class Map:
             file.write('\n')
         file.write(f'{str(len(self.districts))}\n')
         for district in self.districts:
-            file.write(district.get_file_line())
+            file.write(get_polygon_file_line(district))
             file.write('\n')
         file.close()
