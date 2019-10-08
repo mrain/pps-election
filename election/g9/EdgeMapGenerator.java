@@ -7,7 +7,7 @@ import election.sim.*;
 
 public class EdgeMapGenerator implements election.sim.MapGenerator {
     private static double scale = 1000.0;
-    private static double THRESHOLDPERCENT = .5;
+    private static double THRESHOLDPERCENT = 45.0/81.0;
     private static double THRESHOLDBORDER = 50.;
     
     private static double corner1X = 0.0;
@@ -39,7 +39,7 @@ public class EdgeMapGenerator implements election.sim.MapGenerator {
         Path2D threshold1 = new Path2D.Double();
         threshold1.moveTo(THRESHOLDBORDER * Math.sqrt(3), THRESHOLDBORDER);
         threshold1.lineTo(1000. - (THRESHOLDBORDER*Math.sqrt(3)), THRESHOLDBORDER);
-        threshold1.lineTo(500., (500-THRESHOLDBORDER) * Math.sqrt(3));
+        threshold1.lineTo(500., corner3Y - 100);
         
         //how many voters we want within the initial threshold convert to int
         int threshold1number = (int) (THRESHOLDPERCENT * numVoters);
@@ -78,37 +78,37 @@ public class EdgeMapGenerator implements election.sim.MapGenerator {
      * @return
      */
     public List<Double> getPrefBasedOnVoterRegion(double voterX, double voterY, int numParties) {
-    	List<Double> pref = new ArrayList<Double>();
-    	
-    	double distancePoint1 = calculateDistanceBetweenPoints(voterX, voterY, corner1X, corner1Y);
-    	double distancePoint2 = calculateDistanceBetweenPoints(voterX, voterY, corner2X, corner2Y);
-    	double distancePoint3 = calculateDistanceBetweenPoints(voterX, voterY, corner3X, corner3Y);
-    	
-    	double minDistance = 0.0;
-    	int minDistancePoint = 0;
-    	if(distancePoint1 < distancePoint2){
-    		minDistance = distancePoint1;
-    		minDistancePoint = 1;
-    	}else{
-    		minDistance = distancePoint2;
-    		minDistancePoint = 2;
-    	}
-    	
-    	if(distancePoint3 < minDistance){
-    		minDistance = distancePoint3;
-    		minDistancePoint = 3;
-    	}
-    	
-    	
-    	for (int j = 0; j < numParties; ++ j){
-    		if(minDistancePoint == j + 1){
-    			pref.add(1.0);
-    		}else{
-    			pref.add(0.0);
-    		}
-    	}
-    	return pref;
-	}
+        List<Double> pref = new ArrayList<Double>();
+        
+        double distancePoint1 = calculateDistanceBetweenPoints(voterX, voterY, corner1X, corner1Y);
+        double distancePoint2 = calculateDistanceBetweenPoints(voterX, voterY, corner2X, corner2Y);
+        double distancePoint3 = calculateDistanceBetweenPoints(voterX, voterY, corner3X, corner3Y);
+        
+        double minDistance = 0.0;
+        int minDistancePoint = 0;
+        if(distancePoint1 < distancePoint2){
+            minDistance = distancePoint1;
+            minDistancePoint = 1;
+        }else{
+            minDistance = distancePoint2;
+            minDistancePoint = 2;
+        }
+        
+        if(distancePoint3 < minDistance){
+            minDistance = distancePoint3;
+            minDistancePoint = 3;
+        }
+        
+        
+        for (int j = 0; j < numParties; ++ j){
+            if(minDistancePoint == j + 1){
+                pref.add(1.0);
+            }else{
+                pref.add(0.0);
+            }
+        }
+        return pref;
+    }
     
     /**
      * Calculate euclidean distance between two points
@@ -119,6 +119,6 @@ public class EdgeMapGenerator implements election.sim.MapGenerator {
      * @return
      */
     public double calculateDistanceBetweenPoints(double x1, double y1, double x2, double y2) {       
-	    return Math.sqrt((y2 - y1) * (y2 - y1) + (x2 - x1) * (x2 - x1));
-	}
+        return Math.sqrt((y2 - y1) * (y2 - y1) + (x2 - x1) * (x2 - x1));
+    }
 }

@@ -1,0 +1,2 @@
+class InvalidMapFile(Exception):
+    pass
