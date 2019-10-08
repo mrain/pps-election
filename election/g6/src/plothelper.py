@@ -5,6 +5,8 @@ from typing import List
 import numpy as np
 from shapely.geometry import Point, Polygon
 
+from election.g6.src.mapgenerator import get_normal, triangle
+
 import matplotlib.pyplot as plt
 
 total_population = 10000
