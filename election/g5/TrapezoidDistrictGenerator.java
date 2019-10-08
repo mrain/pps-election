@@ -90,7 +90,6 @@ public class TrapezoidDistrictGenerator implements election.sim.DistrictGenerato
 
             System.out.println(result.size());
             System.out.println(currentHeight);
-            System.out.println(votersAllocated);
             System.out.println(votersCounter);
         }
 
