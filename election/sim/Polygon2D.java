@@ -25,9 +25,14 @@ public class Polygon2D {
             Line2D headLine = new Line2D.Double(point, head);
             for (int i = 0; i < points.size() - 2; ++i) {
                 Line2D curLine = new Line2D.Double(points.get(i), points.get(i + 1));
-//                if ((i < points.size() - 2 && newLine.intersectsLine(curLine)) || (i > 0 && headLine.intersectsLine(curLine))) {
-//                    return false;
-//                }
+                curLine.setLine(curLine.getX1(), curLine.getY1(), curLine.getX2(), curLine.getY2());
+                /*if (newLine.intersectsLine(curLine) || headLine.intersectsLine(curLine)) {
+                	System.out.println(curLine.getX1() + ", " + curLine.getY1() + " - " + curLine.getX2() + ", " + curLine.getY2());
+                	System.out.println(headLine.getX1() + ", " + headLine.getY1() + " - " + headLine.getX2() + ", " + headLine.getY2());
+                	System.out.println(newLine.intersectsLine(curLine));
+                	System.out.println(headLine.intersectsLine(curLine));
+                    return false;
+                }*/
             }
         }
         points.add((Point2D)point.clone());
