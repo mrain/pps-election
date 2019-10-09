@@ -3,6 +3,9 @@ import random
 from typing import List
 from shapely.ops import cascaded_union
 
+from collections import defaultdict
+from itertools import combinations, product
+
 import networkx as nx
 import metis
 import numpy as np
@@ -183,6 +186,10 @@ def find_adjacent_triangle(index, triangles: List[Polygon]):
     return inds
 
 
+def check_if_node_is_near_part_boundary(graph, node):
+    return True
+
+
 def get_districts_from_triangles(voters: List[Voter], raw_triangles: List[Polygon], n_districts: int, seed: int) -> List[Polygon]:
     # triangles = []
     # for rt in raw_triangles:
@@ -197,18 +204,64 @@ def get_districts_from_triangles(voters: List[Voter], raw_triangles: List[Polygo
     #     districts.append(d)
     #     free_triangles.pop(index)
     graph = nx.Graph()
+    graph.graph['node_weight_attr'] = 'population'
     graph.add_nodes_from(list(range(len(raw_triangles))))
     for index, triangle in enumerate(raw_triangles):
+        graph.nodes[index]['population'] = get_voters_in_polygon(triangle, voters)
         adj_trs = find_adjacent_triangle(index, raw_triangles)
         for tr in adj_trs:
             graph.add_edge(index, tr)
     # Extension
-    (edgecuts, parts) = metis.part_graph(graph, n_districts, ncuts=2, niter=20, contig=True)
+    (edgecuts, parts) = metis.part_graph(
+        graph,
+        n_districts,
+        ncuts=2,        # number of different cuts to try
+        niter=20,       # number of iterations of an algorithm
+        contig=True,    # force partitions to be contiguous
+        ubvec=1.1       # allowed constraint imbalance
+    )
     districts = []
     for i in range(n_districts):
         districts.append(District())
     for index, part in enumerate(parts):
+        graph.nodes[index]['part'] = part
         districts[part].append_triangle(raw_triangles[index])
+
+    niters = 1000
+    nsample = 50
+    for i in range(niters):
+        # sample random vertices pairs
+        sampled_nodes = random.sample(graph.nodes, nsample)
+        candidate_nodes = []
+        for node in sampled_nodes:
+            is_near_boundary = check_if_node_is_near_part_boundary(graph, node)
+            if is_near_boundary:
+                candidate_nodes.append(node)
+        parts_nodes = defaultdict(list)
+        swap_proposals = []
+        for node in candidate_nodes:
+            parts_nodes[node['part']].append(node)
+        for a, b in combinations(parts_nodes.keys(), 2):
+            for node1, node2 in product(parts_nodes[a], parts_nodes[b]):
+                node1_has_where_to_flip = False
+                node2_has_where_to_flip = False
+                for n in graph.neighbors(node1):
+                    if n != node2:
+                        node1_has_where_to_flip = True
+                        break
+                for n in graph.neighbors(node2):
+                    if n != node1:
+                        node2_has_where_to_flip = True
+                        break
+                if node1_has_where_to_flip and node2_has_where_to_flip:
+                    swap_proposals.append([
+                        [a, node1],
+                        [b, node2]
+                    ])
+        # check if flipping each pair is better for metric
+        # check if flip is valid
+        # flip
+        pass
     return [d.get_one_polygon() for d in districts]
 
 
