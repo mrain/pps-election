@@ -25,8 +25,9 @@ public class Polygon2D {
             Line2D headLine = new Line2D.Double(point, head);
             for (int i = 0; i < points.size() - 2; ++i) {
                 Line2D curLine = new Line2D.Double(points.get(i), points.get(i + 1));
-                if (newLine.intersectsLine(curLine) || headLine.intersectsLine(curLine))
-                    return false;
+//                if ((i < points.size() - 2 && newLine.intersectsLine(curLine)) || (i > 0 && headLine.intersectsLine(curLine))) {
+//                    return false;
+//                }
             }
         }
         points.add((Point2D)point.clone());

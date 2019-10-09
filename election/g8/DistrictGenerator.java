@@ -258,15 +258,6 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             initialDistricts.set(adjacentDistrictIdx, adjacentNewPolygon);
 
             System.out.println("Exchanging Territory between district " + didx + ", and " + adjacentDistrictIdx);
-
-//            for(Point2D point : newPoints) {
-//                System.out.println(point.getX() + "," + point.getY());
-//            }
-//
-//            System.out.println("\n\n");
-//            for(Point2D point : adjacentNewPoints) {
-//                System.out.println(point.getX() + "," + point.getY());
-//            }
         }
     }
 }
