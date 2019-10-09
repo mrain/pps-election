@@ -23,18 +23,25 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 
         Set<Pair<Integer, Integer>> remainingCoordinates = new HashSet<>(municipalMap.keySet());
         List<Pair<Integer, Integer>> startingCoordinates = getRandomCoordinates(municipalMap.keySet(), numDistricts);
+        System.out.println("Number of starting coordinates: " + startingCoordinates.size());
         remainingCoordinates.removeAll(startingCoordinates);
+        System.out.println("Number of remaining coordinates: " + remainingCoordinates.size());
 
         List<Municipal> municipals = convertCoordinatesToMunicipals(startingCoordinates, municipalMap);
 
         while(remainingCoordinates.size() > 0) {
+            System.out.println("Number of remaining coordinates: " + remainingCoordinates.size());
+            this.printMunicipals(municipals, false);
+            int numRemainingCoordinates = remainingCoordinates.size();
             for (Municipal muni : municipals) {
                 List<Pair<Integer, Integer>> neighbors = muni.getNeighboringCoordinates();
                 if (neighbors.size() == 0) continue;
                 Collections.shuffle(neighbors);
                 Pair<Integer, Integer> newNeighbor = null;
                 for (Pair<Integer, Integer> neighbor : neighbors) {
+                    Polygon2D neighborPolygon2D = municipalMap.get(neighbor);
                     if (remainingCoordinates.contains(neighbor)) {
+                    //  && !muni.containsAllVertices(neighborPolygon2D)
                         newNeighbor = neighbor;
                         break;
                     }
@@ -44,8 +51,12 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                     remainingCoordinates.remove(newNeighbor);
                 }
             }
+            if(numRemainingCoordinates == remainingCoordinates.size()) {
+                this.printRemainingCoordinates(remainingCoordinates);
+                throw new RuntimeException("could not add all coordinates");
+            }
         }
-        // this.printMunicipals(municipals);
+        this.printMunicipals(municipals, true);
         List<Polygon2D> result = municipals.stream().map(m -> m.getPolygon()).collect(Collectors.toList());
         return result;
     }
@@ -58,16 +69,20 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         System.out.println();
     }
 
-    private void printMunicipals(List<Municipal> municipals) {
+    private void printMunicipals(List<Municipal> municipals, boolean detailed) {
+        int countTriangles = 0;
         for (Municipal muni : municipals) {
-            muni.print();
+            countTriangles += muni.getNumTriangles();
+            if (detailed) muni.print();
         }
+        System.out.println("Total Municipals: " + countTriangles);
     }
 
     private List<Municipal> convertCoordinatesToMunicipals(List<Pair<Integer, Integer>> coordinates, Map<Pair<Integer, Integer>, Polygon2D> municipalMap) {
         List<Municipal> municipals = new ArrayList<>();
         for (Pair<Integer, Integer> coordinate : coordinates) {
-            municipals.add(new Municipal(new Pair<Pair<Integer, Integer>, Polygon2D>(coordinate, municipalMap.get(coordinate))));
+            Polygon2D polygon = municipalMap.get(coordinate);
+            municipals.add(new Municipal(new Pair<Pair<Integer, Integer>, Polygon2D>(coordinate, polygon)));
         }
         return municipals;
     }
@@ -86,7 +101,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             for (int j = 0; j <= i; ++ j) {
                 Polygon2D polygon = new Polygon2D();
                 Pair<Integer, Integer> coordinates = new Pair<>(2*i, j);
-                System.out.println(" x: " + 2*i + " y: " + j);
+                // System.out.println(" x: " + 2*i + " y: " + j);
                 polygon.append(left + hstep * j, btm);
                 polygon.append(left + hstep * j + hstep, btm);
                 polygon.append(left + hstep * j + hstep / 2, top);
@@ -95,14 +110,13 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             for (int j = 0; j < i; ++ j) {
                 Polygon2D polygon = new Polygon2D();
                 Pair<Integer, Integer> coordinates = new Pair<>(2*i-1, j);
-                System.out.println(" x: " + (2*i-1) + " y: " + j);
+                // System.out.println(" x: " + (2*i-1) + " y: " + j);
                 polygon.append(left + hstep * j + hstep / 2, top);
                 polygon.append(left + hstep * j + hstep, btm);
                 polygon.append(left + hstep * j + hstep * 3 / 2, top);
                 municipalMap.put(coordinates, polygon);
             }
         }
-
         return municipalMap;
     }
 
