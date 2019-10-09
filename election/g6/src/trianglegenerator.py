@@ -1,5 +1,5 @@
 import math
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 from shapely.geometry import Polygon
@@ -103,7 +103,7 @@ def adaptive_partition(voters: List[Voter], population_per_triangle=None) -> Lis
 
 # partition into three smaller triangles recursively
 def recursive_partition(triangle: Polygon, voters: List[Voter], threshold,
-                        tolerance=2.2) -> List[Polygon]:
+                        tolerance=2.7) -> List[Polygon]:
     new_voters = get_voters_in_polygon(triangle, voters)
     if len(new_voters) <= tolerance * threshold:
         return [triangle]
@@ -132,7 +132,7 @@ def combined_partition(voters: List[Voter], population_per_triangle=None) -> Lis
     if not population_per_triangle:
         population_per_triangle = len(voters) // (81 * 7)
     result = []
-    polygons = adaptive_partition(voters, population_per_triangle=1.4 * population_per_triangle)
+    polygons = adaptive_partition(voters, population_per_triangle=1.8 * population_per_triangle)
     print('Naive done', flush=True)
     for i, polygon in enumerate(polygons):
         result += recursive_partition(polygon, voters, threshold=population_per_triangle)
@@ -150,12 +150,13 @@ def get_initial_triangles(voters: List[Voter], threshold: float = 333333. // (81
     return combined_partition(voters, population_per_triangle=threshold)
 
 
-def get_n_voters_in_polygon(polygon: Polygon, voters: List[Voter]) -> int:
+def get_n_voters_in_polygon(polygon: Polygon, voters: List[Voter]) -> Tuple[int, List[Voter]]:
     s = 0
-    for v in voters:
+    for i, v in enumerate(voters):
         if is_in_polygon(v, polygon):
             s += 1
-    return s
+            del voters[i]
+    return s, voters
 
 
 def get_triangles(voters: List[Voter], representatives_per_district: int, seed: int) -> List[Polygon]:
@@ -165,5 +166,6 @@ def get_triangles(voters: List[Voter], representatives_per_district: int, seed: 
     triangles = get_initial_triangles(voters, threshold, seed)
     for i, triangle in enumerate(triangles):
         print(str(i + 1) + '/' + str(len(triangles)), flush=True)
-        triangle.population = get_n_voters_in_polygon(triangle, voters)
+        population, voters = get_n_voters_in_polygon(triangle, voters)
+        triangle.population = population
     return triangles

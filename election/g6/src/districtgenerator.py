@@ -1,7 +1,7 @@
 import random
 from collections import defaultdict
 from itertools import combinations, product
-from typing import List
+from typing import List, Tuple
 
 import metis
 import networkx as nx
@@ -59,6 +59,14 @@ def check_if_node_is_near_part_boundary(graph, node):
     return True
 
 
+def get_n_voters_in_polygon(polygon: Polygon, voters: List[Voter]) -> Tuple[int, List[Voter]]:
+    s = 0
+    for i, v in enumerate(voters):
+        if is_in_polygon(v, polygon):
+            s += 1
+    return s, voters
+
+
 def get_districts_from_triangles(
         voters: List[Voter], raw_triangles: List[Polygon], n_districts: int, seed: int
 ) -> List[Polygon]:
@@ -78,9 +86,12 @@ def get_districts_from_triangles(
     graph = nx.Graph()
     graph.graph['node_weight_attr'] = 'population'
     graph.add_nodes_from(list(range(len(raw_triangles))))
+    voters = random.sample(voters, 3333)
     for index, triangle in enumerate(raw_triangles):
         print(str(index+1) + '/' + str(len(raw_triangles)), flush=True)
-        graph.nodes[index]['population'] = triangle.population
+        print(len(voters))
+        population, voters = get_n_voters_in_polygon(triangle, voters)
+        graph.nodes[index]['population'] = population
         adj_trs = find_adjacent_triangle(index, raw_triangles)
         for tr in adj_trs:
             graph.add_edge(index, tr)
@@ -92,8 +103,7 @@ def get_districts_from_triangles(
         ncuts=2,  # number of different cuts to try
         niter=20,  # number of iterations of an algorithm
         contig=True,  # force partitions to be contiguous
-        ubvec=1.1,  # allowed constraint imbalance
-        dbglvl=METIS_DBG_ALL
+        ubvec=[1.1],  # allowed constraint imbalance
     )
     print('Forming districts')
     districts = []
