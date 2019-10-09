@@ -120,7 +120,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     }
 
     public void sampleDistricts(List<Polygon2D> initialDistricts) {
-        double probSwitch = 0.1;
+        double probSwitch = 0.25;
         double maxChunkArea = 100;
         double targetSides = Math.sqrt(maxChunkArea * 4.0 / Math.sqrt(3.0));
         double targetTriangleHeight = targetSides * Math.sqrt(3.0) / 2.0;
@@ -132,7 +132,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 
         for(int didx=0; didx < initialDistricts.size(); didx++) {
             Polygon2D district = initialDistricts.get(didx);
-            if(didx > 0) { // Math.random() > probSwitch || district.getPoints().size() > 6) {
+            if(Math.random() > probSwitch || district.getPoints().size() > 6) {
                 continue;
             }
 
@@ -156,6 +156,8 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             int endIdx = (startIdx + 1 >= district.getPoints().size()) ? 0: startIdx + 1;
             Point2D startPoint = district.getPoints().get(startIdx);
             Point2D endPoint = district.getPoints().get(endIdx);
+            String startPointKey = Math.round(startPoint.getX()) + "," +  Math.round(startPoint.getY());
+            String endPointKey = Math.round(endPoint.getX()) + "," +  Math.round(endPoint.getY());
             Point2D midPoint = new Point2D.Double((startPoint.getX() + endPoint.getX()) / 2.0,
                     (startPoint.getY() + endPoint.getY()) / 2.0);
             Line2D edge = new Line2D.Double(startPoint, endPoint);
@@ -163,13 +165,6 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             double percentageDisruptLine = Math.min(targetSides / edgeLength, 1.0);
             double percentageDown = 0.5 - percentageDisruptLine / 2.0;
             double percentageUp = 0.5 + percentageDisruptLine / 2.0;
-
-//            if(Math.random() <= 0.5) { //  TODO - test this out
-//                targetAngle += Math.PI;
-//                if (targetAngle > 2 * Math.PI) {
-//                    targetAngle -= 2 * Math.PI;
-//                }
-//            }
 
             // look up neighboring district to the randomly selected border
             ArrayList<Integer> districtsWhichShareBorder = districtsByBorder.get(constructLineKey(startPoint, endPoint));
@@ -193,6 +188,12 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             double angle = Math.atan((newPointCloserToEnd.getY() - newPointCloserToStart.getY()) /
                     (newPointCloserToEnd.getX() - newPointCloserToStart.getX()));
             double targetAngle = angle + Math.PI / 2.0;
+            if(Math.random() <= 0.5) {
+                targetAngle += Math.PI;
+                if (targetAngle > 2 * Math.PI) {
+                    targetAngle -= 2 * Math.PI;
+                }
+            }
             double deltaX = Math.cos(targetAngle) * targetTriangleHeight;
             double deltaY = Math.sin(targetAngle) * targetTriangleHeight;
             Point2D triangleTop = new Point2D.Double(midPoint.getX() + deltaX, midPoint.getY() + deltaY);
@@ -213,9 +214,11 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             int adjacentEndIdx = 9999;
             int adjacentStartIdx = -1;
             for(int z = 0; z < adjacentDistrict.getPoints().size(); z++) {
-                if(adjacentDistrict.getPoints().get(z) == endPoint) {
+                Point2D adjacentPoint = adjacentDistrict.getPoints().get(z);
+                String adjDistrictKey = Math.round(adjacentPoint.getX()) + "," + Math.round(adjacentPoint.getY());
+                if(adjDistrictKey.equals(endPointKey)) {
                     adjacentEndIdx = z;
-                } else {
+                } else if(adjDistrictKey.equals(startPointKey)) {
                     adjacentStartIdx = z;
                 }
             }
@@ -241,13 +244,19 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             }
 
             // Add these new points to our counts map so that they get recognized as border points (count = 2)
+            String oldEdgeKey = constructLineKey(startPoint, endPoint);
             String newEdgeKey1 = constructLineKey(newPointCloserToStart, triangleTop);
             String newEdgeKey2 = constructLineKey(newPointCloserToEnd, triangleTop);
+            String newEdgeKey3 = constructLineKey(startPoint, newPointCloserToStart);
+            String newEdgeKey4 = constructLineKey(endPoint, newPointCloserToEnd);
             ArrayList<Integer>sharedBorderDistrictIdxs = new ArrayList<>();
             sharedBorderDistrictIdxs.add(didx);
             sharedBorderDistrictIdxs.add(adjacentDistrictIdx);
+            districtsByBorder.remove(oldEdgeKey);
             districtsByBorder.put(newEdgeKey1, sharedBorderDistrictIdxs);
             districtsByBorder.put(newEdgeKey2, sharedBorderDistrictIdxs);
+            districtsByBorder.put(newEdgeKey3, sharedBorderDistrictIdxs);
+            districtsByBorder.put(newEdgeKey4, sharedBorderDistrictIdxs);
 
             ArrayList<Point2D>adjacentNewPoints = insertInto(adjacentDistrict.getPoints(), adjacentInsertPoints,
                     adjacentSpliceIdx);
@@ -258,6 +267,13 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             initialDistricts.set(adjacentDistrictIdx, adjacentNewPolygon);
 
             System.out.println("Exchanging Territory between district " + didx + ", and " + adjacentDistrictIdx);
+            for(Point2D p: newPoints) {
+                System.out.println(p.getX() + "," + p.getY());
+            }
+            System.out.println("\n");
+            for(Point2D p : adjacentNewPoints) {
+                System.out.println(p.getX() + "," + p.getY());
+            }
         }
     }
 }
