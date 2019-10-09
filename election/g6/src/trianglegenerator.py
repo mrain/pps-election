@@ -103,10 +103,13 @@ def adaptive_partition(voters: List[Voter], population_per_triangle=None) -> Lis
 
 # partition into three smaller triangles recursively
 def recursive_partition(triangle: Polygon, voters: List[Voter], threshold,
-                        tolerance=2.7) -> List[Polygon]:
+                        tolerance=2.7, return_population = True):
     new_voters = get_voters_in_polygon(triangle, voters)
-    if len(new_voters) <= tolerance * threshold:
-        return [triangle]
+    if len(new_voters) <= tolerance*threshold: 
+        if return_population: 
+            return [{"polygon": triangle, "population": len(new_voters)}]
+        else:
+            return [triangle]
 
     # TODO: better centroid finding algorithm, e.g fast median
     x, y = 0, 0
