@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from shapely.geometry import Point, Polygon
 
 def read_data(file):
@@ -191,3 +192,20 @@ def get_partisanship_bias(dist_voters, n_rep):
         new_total_seats = get_total_seats(new_dist_seats)
         new_results[d] = {"results": new_dist_results[-1], "seats": new_total_seats}
     return new_results
+
+def get_partisanship_curve(new_results, file):
+    # Get partisanship curve
+    pvs = []
+    pss = []
+    for d in new_results:
+        pv = new_results[d]["results"][:][0] / sum(new_results[d]["results"])
+        ps = new_results[d]["seats"][:][0] / sum(new_results[d]["seats"])
+        pvs.append(pv)
+        pss.append(ps)
+    plt.plot(pvs, pss, "b-")
+    plt.title(file)
+    plt.xlabel("Percentage of votes")
+    plt.ylabel("Percentage of seats")
+    plt.hlines(0.5, 0, 1, "k", "dashed")
+    plt.vlines(0.5, 0, 1, "k", "dashed")
+    plt.savefig(file)
