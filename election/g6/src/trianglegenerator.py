@@ -79,12 +79,32 @@ def _find_level_points(voters, population_per_triangle):
     points_by_level.append(curr_level)
     return points_by_level
 
+def _horizontal_adjustment(voters, points_by_level):
+    num_levels = len(points_by_level)
+    result = points_by_level[:2]
+    for i in range(2, num_levels):
+        prev_level, curr_level = points_by_level[i-1], points_by_level[i]
+        polygon = Polygon([prev_level[0], prev_level[-1], curr_level[0], curr_level[-1]])
+        curr_voters = get_voters_in_polygon(polygon, voters)
+        curr_voters.sort(key = lambda voter: voter.location.x)
+        num_voters = len(curr_voters)
+        
+        curr_level_points = []
+        for j in range(1, len(curr_level) - 1):
+            index = math.ceil(j * (num_voters / (len(curr_level) - 1)))
+            split_voter = curr_voters[index]
+            split_point = (split_voter.location.x - 0.00001, curr_level[j][1])
+            curr_level_points.append(split_point)
+        curr_level_points = [curr_level[0]] + curr_level_points + [curr_level[-1]]
+        result.append(curr_level_points)
+    return result
 
 def adaptive_partition(voters: List[Voter], population_per_triangle=None) -> List[Polygon]:
     if not population_per_triangle:
         population_per_triangle = len(voters) // (81 * 7)
     points_by_level = _find_level_points(voters, population_per_triangle)
-
+    points_by_level = _horizontal_adjustment(voters, points_by_level) # comment out this to do naive
+    
     result = []
     for level in range(len(points_by_level) - 1):
         curr_level = points_by_level[level]
@@ -125,20 +145,22 @@ def recursive_partition(triangle: Polygon, voters: List[Voter], threshold,
     new_triangle1 = Polygon([p1, p2, centroid])
     new_triangle2 = Polygon([p1, p3, centroid])
     new_triangle3 = Polygon([p2, p3, centroid])
-    result = recursive_partition(new_triangle1, new_voters, threshold, tolerance) + \
-             recursive_partition(new_triangle2, new_voters, threshold, tolerance) + \
-             recursive_partition(new_triangle3, new_voters, threshold, tolerance)
+    result = recursive_partition(new_triangle1, new_voters, threshold, tolerance, return_population) + \
+             recursive_partition(new_triangle2, new_voters, threshold, tolerance, return_population) + \
+             recursive_partition(new_triangle3, new_voters, threshold, tolerance, return_population)
     return result
 
 
-def combined_partition(voters: List[Voter], population_per_triangle=None) -> List[Polygon]:
+def combined_partition(voters: List[Voter], population_per_triangle=None, 
+                       return_population = True) -> List[Polygon]:
     if not population_per_triangle:
         population_per_triangle = len(voters) // (81 * 7)
     result = []
     polygons = adaptive_partition(voters, population_per_triangle=1.8 * population_per_triangle)
     print('Naive done', flush=True)
     for i, polygon in enumerate(polygons):
-        result += recursive_partition(polygon, voters, threshold=population_per_triangle)
+        result += recursive_partition(polygon, voters, threshold=population_per_triangle, 
+                                      return_population=return_population)
         print(str(i+1) + '/' + str(len(polygons)), flush=True)
     return result
 
@@ -148,7 +170,8 @@ def k_means_clustering():
     pass
 
 
-def get_initial_triangles(voters: List[Voter], threshold: float = 333333. // (81 * 7), seed: int = 1234) -> List[Polygon]:
+def get_initial_triangles(voters: List[Voter], threshold: float = 333333. // (81 * 7), 
+                          seed: int = 1234) -> List[Polygon]:
     np.random.seed(seed)
     return combined_partition(voters, population_per_triangle=threshold)
 
