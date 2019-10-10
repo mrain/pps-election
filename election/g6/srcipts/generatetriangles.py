@@ -15,7 +15,8 @@ def main(options):
     with open(options.output + '.pickle', 'wb') as file:
         pickle.dump(triangles, file)
     draw_voters(m.voters)
-    draw_polygons(triangles)
+    polygons = [t['polygon'] for t in triangles]
+    draw_polygons(polygons)
     plt.savefig(options.output + '.png')
 
 
@@ -23,7 +24,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--module', '-m', type=str, default="election.g6.src.trianglegenerator")
     parser.add_argument('--input', '-i', type=str, default="maps/g6/2_real_data_map.map")
-    parser.add_argument('--output', '-o', type=str, default="maps/g6/3_real_data_triangles")
+    parser.add_argument('--output', '-o', type=str, default="maps/g6/0_real_data_triangles")
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--representatives', type=int, default=3)
     args = parser.parse_args()

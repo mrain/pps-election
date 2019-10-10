@@ -1,7 +1,7 @@
 import random
 from collections import defaultdict
 from itertools import combinations, product
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import metis
 import networkx as nx
@@ -67,8 +67,15 @@ def get_n_voters_in_polygon(polygon: Polygon, voters: List[Voter]) -> Tuple[int,
     return s, voters
 
 
+def wasted_vote_metric(districts: List[District]) -> Dict[str, float]:
+    parties = {}
+    for district in districts:
+        party_scores = district.get_party_scores()
+    return parties
+
+
 def get_districts_from_triangles(
-        voters: List[Voter], raw_triangles: List[Polygon], n_districts: int, seed: int
+        voters: List[Voter], triangles: List[Dict], n_districts: int, seed: int
 ) -> List[Polygon]:
     # triangles = []
     # for rt in raw_triangles:
@@ -85,14 +92,13 @@ def get_districts_from_triangles(
     print('Forming graph')
     graph = nx.Graph()
     graph.graph['node_weight_attr'] = 'population'
-    graph.add_nodes_from(list(range(len(raw_triangles))))
+    graph.add_nodes_from(list(range(len(triangles))))
     voters = random.sample(voters, 3333)
-    for index, triangle in enumerate(raw_triangles):
-        print(str(index+1) + '/' + str(len(raw_triangles)), flush=True)
+    for index, triangle in enumerate(triangles):
+        print(str(index+1) + '/' + str(len(triangles)), flush=True)
         print(len(voters))
-        population, voters = get_n_voters_in_polygon(triangle, voters)
-        graph.nodes[index]['population'] = population
-        adj_trs = find_adjacent_triangle(index, raw_triangles)
+        graph.nodes[index]['population'] = triangle['population']
+        adj_trs = find_adjacent_triangle(index, triangle['polygon'])
         for tr in adj_trs:
             graph.add_edge(index, tr)
     # Extension
@@ -111,7 +117,7 @@ def get_districts_from_triangles(
         districts.append(District())
     for index, part in enumerate(parts):
         graph.nodes[index]['part'] = part
-        districts[part].append_triangle(raw_triangles[index])
+        districts[part].append_triangle(triangles[index]['polygon'])
 
     # niters = 1000
     # nsample = 50
@@ -153,7 +159,7 @@ def get_districts_from_triangles(
 
 
 def get_districts(
-        voters: List[Voter], triangles: List[Polygon], representatives_per_district: int, seed: int
+        voters: List[Voter], triangles: List[Dict], representatives_per_district: int, seed: int
 ) -> List[Polygon]:
     n_districts = int(81. / representatives_per_district * 3.)
     districts = get_districts_from_triangles(voters, triangles, n_districts, seed)
