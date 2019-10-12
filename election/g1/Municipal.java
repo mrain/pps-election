@@ -26,6 +26,7 @@ public class Municipal {
 	// assume that the new polygon is a triangle
 	public boolean add(Pair<Pair<Integer, Integer>, Polygon2D> newTriangle) {
 		if (map.keySet().contains(newTriangle.getKey())) return false;
+		if (isInvalidShapeClosing(newTriangle)) return false;
 		this.map.put(newTriangle.getKey(), newTriangle.getValue());
 		this.updatePolygon(newTriangle.getValue());
 		this.numTriangles++;
@@ -93,26 +94,36 @@ public class Municipal {
 			oldPointsIndex++;
 		}
 
-		if (approxEquals(newPoints.get(0), newPoints.get(newPoints.size()-1))) {
-			newPoints = newPoints.subList(1, newPoints.size()-1);
-		}
-
 		for (Point2D newPoint : newPoints) {
 			boolean success = updatedPolygon.append(newPoint);
 			if (!success) {
-				throw new RuntimeException("Could not append a point to the updated polygon");
+				throw new RuntimeException("Could not append a point to the updated polygon?");
 			}
 		}
 
 		validate(this.polygon, updatedPolygon, newPolygon);
-		double expectedArea = this.polygon.area() + newPolygon.area();
-		double actualArea = updatedPolygon.area();
 
 		this.polygon = updatedPolygon;
 		for (Point2D p : newPolygon.getPoints()) {
 			this.seenPoints.add(p);
 		}
 		// System.out.println("After: " + this.polygon.toString());
+	}
+
+	private boolean isInvalidShapeClosing(Pair<Pair<Integer, Integer>, Polygon2D> newTriangle) {
+		// a closing of a shape is invalid if 3 of the triangle's points have been seen, but only 1 of its neighbors!
+		Set<Pair<Integer, Integer>> neighboringCoordinates = new HashSet<>(this.getNeighboringCoordinates(newTriangle.getKey()));
+		neighboringCoordinates.retainAll(this.map.keySet());
+		Set<Point2D> overlappingPoints = new HashSet<>();
+		for(Point2D p1 : newTriangle.getValue().getPoints()) {
+			for(Point2D p2 : this.seenPoints) {
+				if (approxEquals(p1, p2)) {
+					overlappingPoints.add(p1);
+					continue;
+				}
+			}
+		}
+		return neighboringCoordinates.size() == 1 && overlappingPoints.size() == 3;
 	}
 
 	private void validate(Polygon2D old, Polygon2D update, Polygon2D delta) {

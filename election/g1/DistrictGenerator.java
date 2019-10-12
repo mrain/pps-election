@@ -18,7 +18,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         numDistricts = 243 / repPerDistrict;
         if (repPerDistrict != 3) System.out.println("WHY IS -rep != 3???");
 
-        int rows = 20; // how small should the municipals be? there are n^2 of them
+        int rows = 30; // how small should the municipals be? there are n^2 of them
         Map<Pair<Integer, Integer>, Polygon2D> municipalMap = generateTriangularMunicipals(rows, repPerDistrict);
 
         Set<Pair<Integer, Integer>> remainingCoordinates = new HashSet<>(municipalMap.keySet());
@@ -31,7 +31,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 
         while(remainingCoordinates.size() > 0) {
             System.out.println("Number of remaining coordinates: " + remainingCoordinates.size());
-            this.printMunicipals(municipals, false);
+            // this.printMunicipals(municipals, false);
             int numRemainingCoordinates = remainingCoordinates.size();
             for (Municipal muni : municipals) {
                 List<Pair<Integer, Integer>> neighbors = muni.getNeighboringCoordinates();
@@ -47,17 +47,22 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                     }
                 }
                 if (newNeighbor != null) {
-                    muni.add(new Pair<Pair<Integer, Integer>, Polygon2D>(newNeighbor, municipalMap.get(newNeighbor)));
-                    remainingCoordinates.remove(newNeighbor);
+                    boolean success = muni.add(new Pair<Pair<Integer, Integer>, Polygon2D>(newNeighbor, municipalMap.get(newNeighbor)));
+                    if (success) {
+                        remainingCoordinates.remove(newNeighbor);
+                    } else {
+                        System.out.println("Could not add a newNeighbor");
+                    }
                 }
             }
-            if(numRemainingCoordinates == remainingCoordinates.size()) {
-                this.printRemainingCoordinates(remainingCoordinates);
-                throw new RuntimeException("could not add all coordinates");
-            }
+            // if(numRemainingCoordinates == remainingCoordinates.size()) {
+            //     this.printRemainingCoordinates(remainingCoordinates);
+            //     throw new RuntimeException("could not add all coordinates");
+            // }
         }
         this.printMunicipals(municipals, true);
         List<Polygon2D> result = municipals.stream().map(m -> m.getPolygon()).collect(Collectors.toList());
+        System.out.println("COMPLETE!");
         return result;
     }
 
