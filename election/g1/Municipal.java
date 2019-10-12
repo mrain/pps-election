@@ -39,6 +39,7 @@ public class Municipal {
 		Polygon2D updatedPolygon = new Polygon2D();
 		List<Point2D> points = newPolygon.getPoints();
 		List<Point2D> oldPoints = polygon.getPoints();
+		List<Point2D> newPoints = new ArrayList<>();
 
 		int pointsIndex = 0;
 		int oldPointsIndex = 0;
@@ -48,58 +49,105 @@ public class Municipal {
 		Point2D p2 = points.get(2);
 
 		while(oldPointsIndex < oldPoints.size()) {
+			Point2D oldPrevious = oldPoints.get((oldPointsIndex-1+oldPoints.size()) % oldPoints.size());
 			Point2D oldCurrent = oldPoints.get(oldPointsIndex);
 			Point2D oldNext = oldPoints.get((oldPointsIndex+1) % oldPoints.size());
 			Point2D oldNextNext = oldPoints.get((oldPointsIndex+2) % oldPoints.size());
 			// System.out.println("appending current: " + oldCurrent);
-			boolean success = updatedPolygon.append(oldCurrent);
+			// boolean success = updatedPolygon.append(oldCurrent);
+			// newPoints.add(oldCurrent);
 			// System.out.println("success?: " + success);
 			if ((approxEquals(oldCurrent, p0) && approxEquals(oldNext, p1) || (approxEquals(oldCurrent, p1) && approxEquals(oldNext, p0)))) {
 				// System.out.println("p0,p1 equal");
-				if (approxEquals(oldNextNext, p2)) {
-					oldPointsIndex++;
+				if (approxEquals(oldPrevious, p2)) {
+					// ; intentionally do not add, this is a middle point that will be processed later.
 				} else {
-					// System.out.println("appending new: " + p2);
-					boolean success1 = updatedPolygon.append(p2);
-					// System.out.println("success1?: " + success1); 
-				}
+					newPoints.add(oldCurrent);
+					if (!approxEquals(oldNextNext, p2)) {
+						newPoints.add(p2);
+					}
+				}	
 			} else if ((approxEquals(oldCurrent, p1) && approxEquals(oldNext, p2) || (approxEquals(oldCurrent, p2) && approxEquals(oldNext, p1)))) {
 				// System.out.println("p1,p2 equal");
-				if (approxEquals(oldNextNext, p0)) {
-					oldPointsIndex++;
+				if (approxEquals(oldPrevious, p0)) {
+					// ; intentionally do not add, this is a middle point that will be processed later.
 				} else {
-					// System.out.println("appending new: " + p0);
-					boolean success2 = updatedPolygon.append(p0);
-					// System.out.println("success2?: " + success2); 
+					newPoints.add(oldCurrent);
+					if (!approxEquals(oldNextNext, p0)) {
+						newPoints.add(p0);
+					}
 				}
 			} else if ((approxEquals(oldCurrent, p2) && approxEquals(oldNext, p0) || (approxEquals(oldCurrent, p0) && approxEquals(oldNext, p2)))) {
 				// System.out.println("p2,p0 equal");
-				if (approxEquals(oldNextNext, p1)) {
-					oldPointsIndex++;
+				if (approxEquals(oldPrevious, p1)) {
+					// ; intentionally do not add, this is a middle point that will be processed later.
 				} else {
-					// System.out.println("appending new: " + p1);
-					boolean success3 = updatedPolygon.append(p1);
-					// System.out.println("success3?: " + success3); 
-				}			
+					newPoints.add(oldCurrent);
+					if (!approxEquals(oldNextNext, p1)) {
+						newPoints.add(p1);
+					}
+				}		
+			} else {
+				newPoints.add(oldCurrent);
 			}
 			oldPointsIndex++;
 		}
+
+		if (approxEquals(newPoints.get(0), newPoints.get(newPoints.size()-1))) {
+			newPoints = newPoints.subList(1, newPoints.size()-1);
+		}
+
+		for (Point2D newPoint : newPoints) {
+			boolean success = updatedPolygon.append(newPoint);
+			if (!success) {
+				throw new RuntimeException("Could not append a point to the updated polygon");
+			}
+		}
+
+		validate(this.polygon, updatedPolygon, newPolygon);
 		double expectedArea = this.polygon.area() + newPolygon.area();
 		double actualArea = updatedPolygon.area();
-		if (Math.abs(expectedArea - actualArea) > 1e-7) {
-			System.out.println("Current:");
-			this.printListPoint2D(this.polygon.getPoints());
-			System.out.println("Adding:");
-			this.printListPoint2D(newPolygon.getPoints());
-			System.out.println("Updated:");
-			this.printListPoint2D(updatedPolygon.getPoints());
-			throw new RuntimeException("Update has gone wrong");
-		}
+
 		this.polygon = updatedPolygon;
 		for (Point2D p : newPolygon.getPoints()) {
 			this.seenPoints.add(p);
 		}
 		// System.out.println("After: " + this.polygon.toString());
+	}
+
+	private void validate(Polygon2D old, Polygon2D update, Polygon2D delta) {
+		validateArea(old, update, delta);
+		validatePoints(old, update, delta);
+	}
+
+	private void validatePoints(Polygon2D old, Polygon2D update, Polygon2D delta) {
+		Set<Point2D> seenPoints = new HashSet<>();
+		for(Point2D point : update.getPoints()) {
+			if (seenPoints.contains(point)) {
+				System.out.println("Current:");
+				this.printListPoint2D(old.getPoints());
+				System.out.println("Adding:");
+				this.printListPoint2D(delta.getPoints());
+				System.out.println("Updated:");
+				this.printListPoint2D(update.getPoints());
+				throw new RuntimeException("invalid update, polygon contains same point twice");
+			}
+			seenPoints.add(point);
+		}
+	}
+
+	private void validateArea(Polygon2D old, Polygon2D update, Polygon2D delta) {
+		double expectedArea = old.area() + delta.area();
+		double actualArea = update.area();
+		if (Math.abs(old.area() + delta.area() - update.area()) > 1e-7) {
+			System.out.println("Current:");
+			this.printListPoint2D(old.getPoints());
+			System.out.println("Adding:");
+			this.printListPoint2D(delta.getPoints());
+			System.out.println("Updated:");
+			this.printListPoint2D(update.getPoints());
+			throw new RuntimeException("invalid update, polygon area did not increase as expected");
+		}
 	}
 
 	private boolean approxEquals(Point2D p1, Point2D p2) {
@@ -133,7 +181,7 @@ public class Municipal {
 			List<Pair<Integer, Integer>> coordinateNeighbors = getNeighboringCoordinates(coordinate);
 			neighbors.addAll(coordinateNeighbors);
 		}
-		neighbors.remove(this.map.keySet());
+		neighbors.removeAll(this.map.keySet());
 		return neighbors;
 	}
 
