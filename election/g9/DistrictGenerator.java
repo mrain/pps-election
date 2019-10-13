@@ -34,7 +34,6 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                     result.add(testDistricts.get(1).polygon);
                     result.add(testDistricts.get(2).polygon);
                 }
-                System.out.println("Starting part 2");
                 for (int j = 0; j < i; ++ j) {
                     Polygon2D polygon = new Polygon2D();
                     polygon.append(left + hstep * j + hstep / 2, top);
@@ -45,6 +44,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                     result.add(testDistricts.get(0).polygon);
                     result.add(testDistricts.get(1).polygon);
                     result.add(testDistricts.get(2).polygon);
+                    //result.add(polygon);
                 }
             }
         } else {
@@ -58,7 +58,6 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 result.add(polygon);
             }
         }
-        System.out.println("Done");
         return result;
     }
 
@@ -70,8 +69,6 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             Polygon2D polygon = startingDistrict.polygon;
             Point2D point1 = polygon.getPoints().get(0);
             Point2D point2 = polygon.getPoints().get(1);
-            System.out.println(point1);
-            System.out.println(point2);
 
             List<District> districts = new ArrayList<District>();
             double slope = (point1.getY() - point2.getY()) / (point1.getX() - point2.getX());
@@ -93,8 +90,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 } else {
                     i = diff;
                 }
-                Point2D trialPoint = new Point2D.Double(point1.getX() + i, (slope * (point1.getX() + 1)) + b);
-
+                Point2D trialPoint = new Point2D.Double(point1.getX() + i, (slope * (point1.getX() + i)) + b);
                 Polygon2D polygon1 = new Polygon2D();
                 Polygon2D polygon2 = new Polygon2D();
                 polygon1.append(point1);
@@ -123,7 +119,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 } else {
                     i = diff;
                 }
-                Point2D trialPoint = new Point2D.Double(mid1.getX() + i, (slope * (mid1.getX() + 1)) + b);
+                Point2D trialPoint = new Point2D.Double(mid1.getX() + i, (slope * (mid1.getX() + i)) + b);
 
                 Polygon2D polygon2 = new Polygon2D();
                 polygon2.append(mid1);
@@ -136,8 +132,6 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 polygon3.append(point2);
                 polygon3.append(polygon.getPoints().get(2));
                 district3 = new District(polygon3, startingDistrict.voters, false);
-                System.out.println(district2.voters.size());
-                System.out.println(totalDistrictSize);
                 if (district2.voters.size() >= bottomThreshold && district2.voters.size() < topThreshold){
                     valid = true;
                 } else if (district2.voters.size() > topThreshold){
