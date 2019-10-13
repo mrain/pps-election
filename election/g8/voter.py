@@ -80,6 +80,41 @@ def sample_new_point(prev_x, prev_y, area):
         if not out_of_bounds(new_x, new_y):
             return new_x, new_y
 
+def asymmetry_score(districts, voters):
+    results = list()
+    #results is a list of tuples (party1seats, party2seats)
+    for i in range(0.0, 0.5, .05):
+        new_voters = copy.deepcopy(voters)
+        for v in new_voters:
+            v.prefs = adjust_voter_preference(v.prefs, i)
+        result = get_result(districts, voters)
+        results.append(result)
+    results.sort()
+    median = results.get(len(results)/2)
+    min = results.get(0)
+    max = results.get(len(results)-1)
+    asymmetry_score = (max[0] - med[0]) - (med[0] - min[0])
+    #asymmetry_score will be 0 for perfectly fair election
+    return asymmetry_score
+
+def net_efficiency_gap(districts, voters, results):
+    # results is a map of district to vote counts
+    party1_wasted = 0
+    party2_wasted = 0
+    for district in districts:
+        wasted1, wasted2 = get_wasted_votes(district, voters)
+        party1_wasted += wasted1
+        party2_wasted += wasted2
+
+    e_gap = (party1_wasted - party2_wasted) / len(voters)
+    return e_gap
+
+def get_wasted_votes(district, voters):
+    print("Returns party1 wasted votes, party2 wasted votes")
+
+def get_result(districts, voters):
+    print("Returns a tuple (party1 seats, party2 seats) for the whole election")
+
 def adjust_voter_preference(pref, target_p2=0.5):
     p1_boost = 0.5 - target_p2
     p2_boost = target_p2 - 0.5
@@ -103,37 +138,37 @@ X = np.zeros((len(x_list),2))
 X[:,0] = np.matrix(x_list)
 X[:,1] = np.matrix(y_list)
 
-kmeans = KMeans(n_clusters=243, init='k-means++', max_iter=300, n_init=10, random_state=0)
-pred_y = kmeans.fit_predict(X)
-#plt.scatter(X[:,0], X[:,1], s=10, edgecolors='none', c='green')
-plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=10, c='red')
-plt.plot([0,1000,500,0],[0,0,500*math.sqrt(3),0])
-plt.show()
-
-v = Voronoi(kmeans.cluster_centers_)
-voronoi_plot_2d(v, show_vertices=False)
-plt.plot([0,1000,500,0],[0,0,500*math.sqrt(3),0])
-plt.xlim(0,1000)
-plt.ylim(0,1000)
-
-# Load Data
-file_path = 'coordinates.txt'
-data = np.genfromtxt(file_path,dtype="i4,i4,U1",
-delimiter=',',names=['x1','x2','class'])
-print(data.shape)
-
-V = np.vstack([np.array((x[0],x[1])) for x in data])
-np.random.shuffle(V)
-V = V[0:333333,:]
-
-kmeans = KMeans(n_clusters=243, init='k-means++', max_iter=300, n_init=10, random_state=0)
-pred_y = kmeans.fit_predict(V)
-plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=10, c='red')
-plt.plot([0,1000,500,0],[0,0,500*math.sqrt(3),0])
-plt.show()
-
-v = Voronoi(kmeans.cluster_centers_)
-voronoi_plot_2d(v, show_vertices=False)
-plt.plot([0,1000,500,0],[0,0,500*math.sqrt(3),0])
-plt.xlim(0,1000)
-plt.ylim(0,1000)
+# kmeans = KMeans(n_clusters=243, init='k-means++', max_iter=300, n_init=10, random_state=0)
+# pred_y = kmeans.fit_predict(X)
+# #plt.scatter(X[:,0], X[:,1], s=10, edgecolors='none', c='green')
+# plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=10, c='red')
+# plt.plot([0,1000,500,0],[0,0,500*math.sqrt(3),0])
+# plt.show()
+#
+# v = Voronoi(kmeans.cluster_centers_)
+# voronoi_plot_2d(v, show_vertices=False)
+# plt.plot([0,1000,500,0],[0,0,500*math.sqrt(3),0])
+# plt.xlim(0,1000)
+# plt.ylim(0,1000)
+#
+# # Load Data
+# file_path = 'coordinates.txt'
+# data = np.genfromtxt(file_path,dtype="i4,i4,U1",
+# delimiter=',',names=['x1','x2','class'])
+# print(data.shape)
+#
+# V = np.vstack([np.array((x[0],x[1])) for x in data])
+# np.random.shuffle(V)
+# V = V[0:333333,:]
+#
+# kmeans = KMeans(n_clusters=243, init='k-means++', max_iter=300, n_init=10, random_state=0)
+# pred_y = kmeans.fit_predict(V)
+# plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=10, c='red')
+# plt.plot([0,1000,500,0],[0,0,500*math.sqrt(3),0])
+# plt.show()
+#
+# v = Voronoi(kmeans.cluster_centers_)
+# voronoi_plot_2d(v, show_vertices=False)
+# plt.plot([0,1000,500,0],[0,0,500*math.sqrt(3),0])
+# plt.xlim(0,1000)
+# plt.ylim(0,1000)
