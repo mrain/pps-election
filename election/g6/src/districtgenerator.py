@@ -5,15 +5,12 @@ from typing import List, Tuple, Dict
 
 import metis
 import networkx as nx
+import nxmetis
 from shapely.geometry import Polygon
 from shapely.ops import cascaded_union
 
+from election.g6.src import dist_analysis
 from election.g6.src.voter import Voter
-METIS_DBG_ALL = sum(2**i for i in list(range(9))+[11])
-
-
-def is_in_polygon(voter: Voter, polygon: Polygon) -> bool:
-    return polygon.contains(voter.location)
 
 
 class District:
@@ -24,11 +21,28 @@ class District:
     def append_triangle(self, triangle):
         self.polygons.append(triangle)
 
+    def get_population(self):
+        population = 0
+        for polygon in self.polygons:
+            population += polygon['population']
+        return population
+
     def get_one_polygon(self):
-        # f = self.polygons[0]
-        # for p in self.polygons[1:]:
-        #     f = f.union(p)
-        return cascaded_union(self.polygons)
+        f = []
+        for p in self.polygons:
+            f.append(p['polygon'])
+        return cascaded_union(f)
+
+    def get_party_distribution(self):
+        party_distribution = defaultdict(int)
+        for polygon in self.polygons:
+            for party in polygon['party_distribution'].keys():
+                party_distribution[party] += polygon['party_distribution'][party]
+        return party_distribution
+
+    def get_party_seats(self):
+        party_distribution = self.get_party_distribution()
+        return dist_analysis.get_one_dist_seats(party_distribution, 3)
 
 
 class Triangle:
@@ -37,45 +51,20 @@ class Triangle:
         self.polygon = polygon
 
 
-def find_adjacent_triangle(index, triangles: List[Polygon]):
-    inds = []
-    tr = triangles[index]
-    for i, t in enumerate(triangles):
-        if i == index:
-            continue
-        x1, y1 = t.exterior.coords.xy
-        x2, y2 = tr.exterior.coords.xy
-        n_p = 0
-        for l in range(3):
-            for j in range(3):
-                if x1[l] == x2[j] and y1[l] == y2[j]:
-                    n_p += 1
-        if n_p >= 2:
-            inds.append(i)
-    return inds
-
-
 def check_if_node_is_near_part_boundary(graph, node):
     return True
 
 
-def get_n_voters_in_polygon(polygon: Polygon, voters: List[Voter]) -> Tuple[int, List[Voter]]:
-    s = 0
-    for i, v in enumerate(voters):
-        if is_in_polygon(v, polygon):
-            s += 1
-    return s, voters
-
-
 def wasted_vote_metric(districts: List[District]) -> Dict[str, float]:
-    parties = {}
+    party_distribution = []
+    party_seats = []
     for district in districts:
-        party_scores = district.get_party_scores()
-    return parties
+        pass
+    return {}
 
 
 def get_districts_from_triangles(
-        voters: List[Voter], triangles: List[Dict], n_districts: int, seed: int
+        voters: List[Voter], triangles: List[Dict], graph, n_districts: int, seed: int
 ) -> List[Polygon]:
     # triangles = []
     # for rt in raw_triangles:
@@ -89,35 +78,48 @@ def get_districts_from_triangles(
     #     d.append_triangle(triangles[index])
     #     districts.append(d)
     #     free_triangles.pop(index)
-    print('Forming graph')
-    graph = nx.Graph()
-    graph.graph['node_weight_attr'] = 'population'
-    graph.add_nodes_from(list(range(len(triangles))))
-    voters = random.sample(voters, 3333)
-    for index, triangle in enumerate(triangles):
-        print(str(index+1) + '/' + str(len(triangles)), flush=True)
-        print(len(voters))
-        graph.nodes[index]['population'] = triangle['population']
-        adj_trs = find_adjacent_triangle(index, triangle['polygon'])
-        for tr in adj_trs:
-            graph.add_edge(index, tr)
+
     # Extension
+    # print('Making initial partition')
+    # (edgecuts, parts) = metis.part_graph(
+    #     graph,
+    #     n_districts,
+    #     ctype='shem',
+    #     rtype='sep2sided',
+    #     ncuts=100,  # number of different cuts to try
+    #     niter=2000,  # number of iterations of an algorithm
+    #     contig=True,  # force partitions to be contiguous
+    #     ubvec=[1.09],  # allowed constraint imbalance
+    # )
+    # print('Forming districts')
+    # districts = []
+    # for i in range(n_districts):
+    #     districts.append(District())
+    # for index, part in enumerate(parts):
+    #     graph.nodes[index]['part'] = part
+    #     districts[part].append_triangle(triangles[index])
     print('Making initial partition')
-    (edgecuts, parts) = metis.part_graph(
+    (edgecuts, parts) = nxmetis.partition(
         graph,
         n_districts,
-        ncuts=2,  # number of different cuts to try
-        niter=20,  # number of iterations of an algorithm
-        contig=True,  # force partitions to be contiguous
-        ubvec=[1.1],  # allowed constraint imbalance
+        # ctype='shem',
+        # rtype='sep2sided',
+        node_weight='population',
+        options=nxmetis.types.MetisOptions(
+            ncuts=100,  # number of different cuts to try
+            niter=2000,  # number of iterations of an algorithm
+            contig=True
+        ),
+        ubvec=[1.09],  # allowed constraint imbalance
     )
     print('Forming districts')
     districts = []
     for i in range(n_districts):
         districts.append(District())
-    for index, part in enumerate(parts):
-        graph.nodes[index]['part'] = part
-        districts[part].append_triangle(triangles[index]['polygon'])
+    for part, part_triangles in enumerate(parts):
+        for index in part_triangles:
+            graph.nodes[index]['part'] = part
+            districts[part].append_triangle(triangles[index])
 
     # niters = 1000
     # nsample = 50
@@ -154,13 +156,14 @@ def get_districts_from_triangles(
     #     # check if flip is valid
     #     # flip
     #     pass
+    s = [(d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
     print('Returning polygons')
     return [d.get_one_polygon() for d in districts]
 
 
 def get_districts(
-        voters: List[Voter], triangles: List[Dict], representatives_per_district: int, seed: int
+        voters: List[Voter], triangles: List[Dict], graph, representatives_per_district: int, seed: int
 ) -> List[Polygon]:
     n_districts = int(81. / representatives_per_district * 3.)
-    districts = get_districts_from_triangles(voters, triangles, n_districts, seed)
+    districts = get_districts_from_triangles(voters, triangles, graph, n_districts, seed)
     return districts
