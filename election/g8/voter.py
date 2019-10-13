@@ -57,8 +57,10 @@ def insideBoundary(voter):
 def area(x1, y1, x2, y2, x3, y3):
     return abs((x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) / 2.0)
 
-x_list = [x for (x,y) in voters]
-y_list = [y for (x,y) in voters]
+voters = extractVoters("../../maps/g8/twoParties.map")
+
+x_list = [v.x for v in voters]
+y_list = [v.y for v in voters]
 X = np.zeros((len(x_list),2))
 X[:,0] = np.matrix(x_list)
 X[:,1] = np.matrix(y_list)
