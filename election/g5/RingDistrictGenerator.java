@@ -127,6 +127,7 @@ public class RingDistrictGenerator implements DistrictGenerator {
         return triTips;
     }
 
+    //Restore triangles from the topmost endpoint
     private Polygon2D getTriByVertex(Point2D vertex) {
     		Polygon2D tri = new Polygon2D();
     		double y = vertex.getY();
@@ -136,6 +137,7 @@ public class RingDistrictGenerator implements DistrictGenerator {
     		return tri;
     }
 
+    //Find a point with specific x-coordinate on a line p1p2
     private double findYByX(double x, Point2D p1, Point2D p2) {
     		double x1 = p1.getX();
     		double y1 = p1.getY();
@@ -146,81 +148,181 @@ public class RingDistrictGenerator implements DistrictGenerator {
     		return k*x+b;
     }
 
-    private Polygon2D findDist(Point2D currIn, Point2D currOut, Point2D innerEndpoint1, Point2D innerEndpoint2, Point2D outerEndpoint1, Point2D outerEndPoint2, double step, double lenRate, List<Voter> voters) {
-    		for(double innerX = currIn.getX(); innerX <= innerEndpoint2.getX(); innerX += step) {
-			double innerY = findYByX(innerX, innerEndpoint1, innerEndpoint2);
-			double outerX = lenRate * (innerX - currIn.getX()) + currOut.getX();
-			double outerY = findYByX(outerX, outerEndpoint1, outerEndPoint2);
-			Polygon2D polygon = new Polygon2D();
-			polygon.append(currIn);
-			polygon.append(currOut);
-			polygon.append(outerX, outerY);
-			polygon.append(innerX, innerY);
-			int p = Run.countInclusion(voters, polygon);
-			if(p >= 0.9*(double)(avgVotersPerDistrict) && p <= 1.1*(double)(avgVotersPerDistrict)) {
-				return polygon;
+    //Fix one edge and find the opposite edge to ensure population within 0.9-1.1 average
+    private Polygon2D findDist(Point2D currIn, Point2D currOut, Point2D innerEndpoint1, Point2D innerEndpoint2, 
+    		Point2D outerEndpoint1, Point2D outerEndPoint2, double step, double lenRate, List<Voter> voters, boolean reverse) {
+    		if(!reverse) {
+	    		for(double innerX = currIn.getX(); innerX <= innerEndpoint2.getX(); innerX += step) {
+				double innerY = findYByX(innerX, innerEndpoint1, innerEndpoint2);
+				double outerX = lenRate * (innerX - currIn.getX()) + currOut.getX();
+				double outerY = findYByX(outerX, outerEndpoint1, outerEndPoint2);
+				Polygon2D polygon = new Polygon2D();
+				polygon.append(currIn);
+				polygon.append(currOut);
+				polygon.append(outerX, outerY);
+				polygon.append(innerX, innerY);
+				int p = Run.countInclusion(voters, polygon);
+				if(p >= 0.9*(double)(avgVotersPerDistrict) && p <= 1.1*(double)(avgVotersPerDistrict)) {
+					//Gerrymander here
+					return polygon;
+				}
 			}
-		}
+    		}
+    		else {
+    			for(double innerX = currIn.getX(); innerX >= innerEndpoint2.getX(); innerX -= step) {
+				double innerY = findYByX(innerX, innerEndpoint1, innerEndpoint2);
+				double outerX = lenRate * (innerX - currIn.getX()) + currOut.getX();
+				double outerY = findYByX(outerX, outerEndpoint1, outerEndPoint2);
+				Polygon2D polygon = new Polygon2D();
+				polygon.append(currIn);
+				polygon.append(currOut);
+				polygon.append(outerX, outerY);
+				polygon.append(innerX, innerY);
+				int p = Run.countInclusion(voters, polygon);
+				if(p >= 0.9*(double)(avgVotersPerDistrict) && p <= 1.1*(double)(avgVotersPerDistrict)) {
+					//Gerrymander here
+					return polygon;
+				}
+			}
+    		}
     		return null;
     }
 
-    private Polygon2D findDist(Point2D vertexIn, Point2D vertexOut, Point2D currIn, Point2D currOut, Point2D innerEndpoint1, Point2D innerEndpoint2, Point2D outerEndpoint1, Point2D outerEndPoint2, double step, double lenRate, List<Voter> voters) {
-		for(double innerX = currIn.getX(); innerX <= innerEndpoint2.getX(); innerX += step) {
-			double innerY = findYByX(innerX, innerEndpoint1, innerEndpoint2);
-			double outerX = lenRate * (innerX - currIn.getX()) + currOut.getX();
-			double outerY = findYByX(outerX, outerEndpoint1, outerEndPoint2);
-			Polygon2D polygon = new Polygon2D();
-			polygon.append(vertexIn);
-			polygon.append(currIn);
-			polygon.append(currOut);
-			polygon.append(vertexOut);
-			polygon.append(outerX, outerY);
-			polygon.append(innerX, innerY);
-			int p = Run.countInclusion(voters, polygon);
-			if(p >= 0.9*avgVotersPerDistrict && p <= 1.1*avgVotersPerDistrict) {
-				return polygon;
+    // Find a district at the corner of the ring
+    private Polygon2D findDistAtCorner(Point2D currIn, Point2D currOut, Point2D innerEndpoint1, Point2D innerEndpoint2, 
+    		Point2D outerEndpoint1, Point2D outerEndPoint2, double step, double lenRate, List<Voter> voters, boolean reverse) {
+    		// Increasing x
+    		if(!reverse) {
+			for(double innerX = innerEndpoint1.getX(); innerX <= innerEndpoint2.getX(); innerX += step) {
+				double innerY = findYByX(innerX, innerEndpoint1, innerEndpoint2);
+				double outerX = lenRate * (innerX - innerEndpoint1.getX()) + outerEndpoint1.getX();
+				double outerY = findYByX(outerX, outerEndpoint1, outerEndPoint2);
+				Polygon2D polygon = new Polygon2D();
+				polygon.append(innerEndpoint1);
+				polygon.append(currIn);
+				polygon.append(currOut);
+				polygon.append(outerEndpoint1);
+				polygon.append(outerX, outerY);
+				polygon.append(innerX, innerY);
+				int p = Run.countInclusion(voters, polygon);
+				if(p >= 0.9*avgVotersPerDistrict && p <= 1.1*avgVotersPerDistrict) {
+					//Gerrymander here
+					return polygon;
+				}
 			}
-		}
+    		}
+    		// Decreasing x (on the bottom edge)
+    		else {
+    			for(double innerX = innerEndpoint1.getX(); innerX >= innerEndpoint2.getX(); innerX -= step) {
+    				double innerY = findYByX(innerX, innerEndpoint1, innerEndpoint2);
+    				double outerX = lenRate * (innerX - innerEndpoint1.getX()) + outerEndpoint1.getX();
+    				double outerY = findYByX(outerX, outerEndpoint1, outerEndPoint2);
+    				Polygon2D polygon = new Polygon2D();
+    				polygon.append(innerEndpoint1);
+    				polygon.append(currIn);
+    				polygon.append(currOut);
+    				polygon.append(outerEndpoint1);
+    				polygon.append(outerX, outerY);
+    				polygon.append(innerX, innerY);
+    				int p = Run.countInclusion(voters, polygon);
+    				if(p >= 0.9*avgVotersPerDistrict && p <= 1.1*avgVotersPerDistrict) {
+    					//Gerrymander here
+    					return polygon;
+    				}
+    			}
+    		}
+		return null;
+	}
+    
+    // When the region do not have no enough population, use three edges
+    private Polygon2D findDistAtTwoCorners(Point2D currIn, Point2D currOut, Point2D innerEndpoint1, Point2D innerEndpoint2, Point2D innerEndpoint3, 
+    		Point2D outerEndpoint1, Point2D outerEndpoint2, Point2D outerEndPoint3, double step, double lenRate, List<Voter> voters) {
+			for(double innerX = innerEndpoint2.getX(); innerX <= innerEndpoint3.getX(); innerX += step) {
+				double innerY = findYByX(innerX, innerEndpoint2, innerEndpoint3);
+				double outerX = lenRate * (innerX - innerEndpoint2.getX()) + outerEndpoint2.getX();
+				double outerY = findYByX(outerX, outerEndpoint2, outerEndPoint3);
+				Polygon2D polygon = new Polygon2D();
+				polygon.append(innerEndpoint2);
+				polygon.append(innerEndpoint1);
+				polygon.append(currIn);
+				polygon.append(currOut);
+				polygon.append(outerEndpoint1);
+				polygon.append(outerEndpoint2);
+				polygon.append(outerX, outerY);
+				polygon.append(innerX, innerY);
+				int p = Run.countInclusion(voters, polygon);
+				if(p >= 0.9*avgVotersPerDistrict && p <= 1.1*avgVotersPerDistrict) {
+					//Gerrymander here
+					return polygon;
+				}
+			}
 		return null;
 	}
 
-    private List<Polygon2D> getDistrictsInRing(List<Voter> voters, List<Point2D> vertices) {
+    // Districting in a ring
+    private List<Polygon2D> getDistrictsInRing(List<Voter> voters, Point2D innerVertex, Point2D outerVertex) {
     		List<Polygon2D> results = new ArrayList<Polygon2D>();
-    		double step = 0.5;
+    		double step = 2;
     		double dist_num = 20;
-    		for(int v = 0; v < vertices.size()-1; v++) {
-	    		Polygon2D outerTri = getTriByVertex(vertices.get(v));
-	    		Polygon2D innerTri = getTriByVertex(vertices.get(v+1));
-	    		Point2D currIn = vertices.get(v);
-	    		Point2D currOut = vertices.get(v+1);
-	    		double lenRate = (vertices.get(v+1).getY()/2 - 250 * Math.sqrt(3) / 3) / (vertices.get(v).getY()/2 - 250 * Math.sqrt(3) / 3);
-	    		for(int i = 0; i < 3; i++) {
-		    		while(results.size() < dist_num-1) {
-		    			Polygon2D p;
-		    			p = findDist(currIn, currOut, innerTri.getPoints().get(i), innerTri.getPoints().get((i+1)%3),
-		    					outerTri.getPoints().get(i), outerTri.getPoints().get((i+1)%3), step, lenRate, voters);
-		    			if(p == null) {
-		    				break;
-		    				//TODO: fix the corner
-//		    				i++;
-//		    				p = findDist(innerTri.getPoints().get(i), outerTri.getPoints().get(i), currIn, currOut,
-//				    				innerTri.getPoints().get(i), innerTri.getPoints().get((i+1)%3), outerTri.getPoints().get(i), outerTri.getPoints().get((i+1)%3), step, lenRate, voters);
-//				    		currIn = p.getPoints().get(5);
-//				    		currOut = p.getPoints().get(4);
-		    			}
-		    			else {
-		    				currIn = p.getPoints().get(3);
-			    			currOut = p.getPoints().get(2);
-		    			}
-		    			results.add(p);
-		    		}
+    		Polygon2D outerTri = getTriByVertex(outerVertex);
+    		Polygon2D innerTri = getTriByVertex(innerVertex);
+    		Point2D currIn = innerVertex;
+    		Point2D currOut = outerVertex;
+    		double lenRate = (outerVertex.getY()/2 - 250 * Math.sqrt(3) / 3) / (innerVertex.getY()/2 - 250 * Math.sqrt(3) / 3);
+    		for(int i = 0; i < 3; i++) {
+    			System.out.println("Edge: " + Integer.toString(i));
+	    		while(results.size() < dist_num-1) {
+	    			Polygon2D p;
+	    			if(i == 1)
+	    				p = findDist(currIn, currOut, innerTri.getPoints().get(i), innerTri.getPoints().get((i+1)%3),
+	    					outerTri.getPoints().get(i), outerTri.getPoints().get((i+1)%3), step, lenRate, voters, true);
+	    			else
+	    				p = findDist(currIn, currOut, innerTri.getPoints().get(i), innerTri.getPoints().get((i+1)%3),
+		    					outerTri.getPoints().get(i), outerTri.getPoints().get((i+1)%3), step, lenRate, voters, false);
+	    			if(p == null) {
+	    				if(i == 0) {
+	    					p = findDistAtCorner(currIn, currOut, innerTri.getPoints().get(1), innerTri.getPoints().get(2),
+	    						outerTri.getPoints().get(1), outerTri.getPoints().get(2), step, lenRate, voters, true);
+	    					if(p == null) {
+	    						p = findDistAtTwoCorners(currIn, currOut, innerTri.getPoints().get(1), innerTri.getPoints().get(2), innerTri.getPoints().get(0),
+	    						outerTri.getPoints().get(1), outerTri.getPoints().get(2), outerTri.getPoints().get(0), step, lenRate, voters);
+	    					}
+	    				}
+	    				else if(i == 1)
+	    					p = findDistAtCorner(currIn, currOut, innerTri.getPoints().get(2), innerTri.getPoints().get(0),
+		    						outerTri.getPoints().get(2), outerTri.getPoints().get(0), step, lenRate, voters, false);
+	    				results.add(p);
+			    		currIn = p.getPoints().get(5);
+			    		currOut = p.getPoints().get(4);
+			    		break;
+	    			}
+	    			else {
+	    				currIn = p.getPoints().get(3);
+		    			currOut = p.getPoints().get(2);
+	    			}
+	    			results.add(p);
+	    			System.out.println("Polygon num: " + Integer.toString(results.size()));
 	    		}
-	    		Polygon2D p = new Polygon2D();
-	    		p.append(currIn);
-	    		p.append(currOut);
-	    		p.append(outerTri.getPoints().get(0));
-	    		p.append(innerTri.getPoints().get(0));
-	    		results.add(p);
+    		}
+    		// We do not check population in the last polygon of a ring now. It should be a limitation for gerrymandering
+    		Polygon2D p = new Polygon2D();
+    		p.append(currIn);
+    		p.append(currOut);
+    		p.append(outerTri.getPoints().get(0));
+    		p.append(innerTri.getPoints().get(0));
+    		results.add(p);
+    		System.out.println("Polygon num: " + Integer.toString(results.size()));
+    		return results;
+    }
+    
+    // Districting in all rings
+    public List<Polygon2D> getAllDistrict(List<Voter> voters, List<Point2D> vertices) {
+    		List<Polygon2D> results = new ArrayList<Polygon2D>();
+    		results.add(getTriByVertex(vertices.get(0)));
+    		for(int i = 0; i < vertices.size() - 1; i++) {
+    			List<Polygon2D> result = getDistrictsInRing(voters, vertices.get(i), vertices.get(i+1));
+    			results.addAll(result);
+    			System.out.println("Total polygon num: " + Integer.toString(results.size()));
     		}
     		return results;
     }
@@ -236,11 +338,9 @@ public class RingDistrictGenerator implements DistrictGenerator {
 
         // 81 Districts
         if (repPerDistrict == 3) {
-        		List<Point2D> vertices = new ArrayList<Point2D>();
-        		for(int i = 0; i < 5; i++) {
-        			vertices.add(new Point2D.Double(500, 500*Math.sqrt(3)/3 + 100*Math.sqrt(3)/15 * i));
-        		}
-			return getDistrictsInRing(voters, vertices);
+        		List<Point2D> vertices = getConcentricTriangleTips(voters);
+        		System.out.println("Start districting");
+			return getAllDistrict(voters, vertices);
         }
         return null;
 	}
