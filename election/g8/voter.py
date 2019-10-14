@@ -1,17 +1,16 @@
 import numpy as np
-import pandas as pd
 from collections import defaultdict
-import matplotlib.pyplot as plt
 import math
 import copy
-import random
-from sklearn.cluster import KMeans
-from sklearn.cluster import MiniBatchKMeans
+from sklearn.cluster import KMeans, MiniBatchKMeans
 from shapely.geometry import Point, Polygon, LineString
-from scipy.spatial import Voronoi, voronoi_plot_2d
+from scipy.spatial import Voronoi
+from random import random
 
 WINNER_TAKE_ALL = False
-NUM_VOTERS = 333333
+NUM_VOTERS = 10000  # 333333
+RANDOM_SEED = 1992
+np.random.seed(RANDOM_SEED)
 
 
 class Voter:
@@ -33,38 +32,6 @@ def extractVoters(filename):
         voters.append(Voter(x, y, prefs))
 
     return voters
-
-
-def RandomVotersGenerator():
-    num_Voters = 0
-    voters = []
-    while(num_Voters < NUM_VOTERS):
-        x = random.uniform(0,1000)
-        y = random.uniform(0, 500*math.sqrt(3))
-        curr_voter = (x, y)
-        if curr_voter not in voters and insideBoundary(curr_voter) == True:
-            voters.append(curr_voter)
-            num_Voters += 1
-    return voters
-
-
-def insideBoundary(voter):
-    x,y = voter[0], voter[1]
-    x1, y1, x2, y2, x3, y3 = 0,0,1000,0,500,500*math.sqrt(3)
-
-    A = area (x1, y1, x2, y2, x3, y3)
-    A1 = area (x, y, x2, y2, x3, y3)
-    A2 = area (x1, y1, x, y, x3, y3)
-    A3 = area (x1, y1, x2, y2, x, y)
-
-    if(A == A1 + A2 + A3):
-        return True
-    else:
-        return False
-
-
-def area(x1, y1, x2, y2, x3, y3):
-    return abs((x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) / 2.0)
 
 
 def sample_new_point(prev_x, prev_y, area):
@@ -126,20 +93,13 @@ def find_voter_district(districts, voter, recent_district_idxs=[]):
 
 
 def compute_seat_count(party_votes):
-    if sum(party_votes) == 0:
-        # TODO fix this (shouldn't have no voters in a district)
-        if random() > 0.5:
-            return [2, 1]
-        else:
-            return [1, 2]
-
     p1_pref = party_votes[0] / float(sum(party_votes))
     p2_pref = party_votes[1] / float(sum(party_votes))
     if WINNER_TAKE_ALL:
         if p1_pref > p2_pref:
-            return [3, 0]
+            return [1, 0]
         else:
-            return [0, 3]
+            return [0, 1]
     p1_seats, p2_seats = 0, 0
     while p1_seats + p2_seats < 3:
         if p1_pref > p2_pref:
@@ -205,13 +165,54 @@ def is_valid_draw(new_districts, voters):
             if len(last_districts) > 3:
                 last_districts = last_districts[1:]
         district_voters[district_idx] += 1
-        if district_voters[district_idx] > upper:
-            return False, district_idx, True
-    for idx in range(len(new_districts)):
-        if district_voters[idx] < lower or district_voters[idx] > upper:
-            too_big = district_voters[idx] > upper
-            return False, voters_by_district, too_big
-    return True, voters_by_district, False
+
+    district_voters = np.array(district_voters)
+    sorted_pop_idxs = np.argsort(district_voters)
+    district_voters_sorted = district_voters[sorted_pop_idxs]
+
+    too_small_breakpoint = 999
+    too_big_breakpoint = 999
+    for didx, district_votes in enumerate(district_voters_sorted):
+        if district_votes > lower:
+            too_small_breakpoint = min(too_small_breakpoint, didx)
+        if district_votes > upper:
+            too_big_breakpoint = min(too_big_breakpoint, didx)
+
+    too_big_district_idxs = []
+    too_small_district_idxs = []
+    if too_small_breakpoint < 999:
+        too_small_district_idxs = sorted_pop_idxs[:too_small_breakpoint]
+    if too_big_breakpoint < 999:
+        too_big_district_idxs = sorted_pop_idxs[too_big_breakpoint:]
+
+    if len(too_small_district_idxs) + len(too_big_district_idxs) == 0:
+        True, voters_by_district, False, 0
+
+    underflow = lower - district_voters[too_small_district_idxs]
+    overflow = district_voters[too_big_district_idxs] - upper
+
+    total_overflow = overflow.sum()
+    total_underflow = underflow.sum()
+
+    candidate_district_idxs = np.concatenate([too_small_district_idxs, too_big_district_idxs])
+    SOFTMAX = False
+    flow_magnitudes = np.concatenate([underflow, overflow])
+    if SOFTMAX:
+        flow_magnitudes = np.exp(flow_magnitudes)
+    flow_magnitudes_norm = flow_magnitudes / flow_magnitudes.sum()
+    chosen_invalid_idx = np.random.choice(candidate_district_idxs, size=1, p=flow_magnitudes_norm)[0]
+
+    print('Total Underflow / Overflow is {} / {} voters'.format(total_underflow, total_overflow))
+    chosen_district_pop = district_voters[chosen_invalid_idx]
+    too_big = chosen_district_pop > upper
+    if too_big:
+        magnitude = chosen_district_pop - upper
+    else:
+        magnitude = lower - chosen_district_pop
+
+    assert magnitude > 0.0
+    magnitude_norm = magnitude / float(mean)
+    return False, chosen_invalid_idx, too_big, magnitude_norm
 
 
 def find_closest(centroids, idx, n=2):
@@ -225,41 +226,50 @@ def find_closest(centroids, idx, n=2):
 
         distances.append(distance)
 
-    return np.argsort(np.array(distances))[-n:]
+    return np.argsort(np.array(distances))[:n]
 
 
-def sample_new_district_centers(centroids, districts, voters):
-    new_centroids = np.zeros([len(centroids), 2])
-    for idx, (centroid, district) in enumerate(zip(centroids, districts)):
-        new_pt = sample_new_point(centroid[0], centroid[1], np.sqrt(district.area))
-        new_centroids[idx, :] = new_pt
-    new_districts = draw_districts(new_centroids)
-    is_valid, voters_by_district, is_too_big = is_valid_draw(new_districts, voters)
+def sample_new_district_centers(centroids, districts, voters, sample=True):
+    if sample:
+        new_centroids = np.zeros([len(centroids), 2])
+        for idx, (centroid, district) in enumerate(zip(centroids, districts)):
+            new_pt = sample_new_point(centroid[0], centroid[1], np.sqrt(district.area))
+            new_centroids[idx, :] = new_pt
+        new_districts = draw_districts(new_centroids)
+    else:
+        new_centroids = centroids
+        new_districts = districts
+    is_valid, voters_by_district, too_big, overflow = is_valid_draw(new_districts, voters)
+    iteration = 0
+    baseline = 0.2
     while not is_valid:
+        move_perc = baseline * overflow
         invalid_idx = voters_by_district
         # find adjacent centroid and move it closer
-        closest_centroid_idxs = find_closest(new_centroids, invalid_idx, n=2)
-        move_perc = 0.2
+        closest_centroid_idxs = find_closest(new_centroids, invalid_idx, n=1)
         start_coords = new_centroids[invalid_idx]
-        if is_too_big:
+        if too_big:
             for closest_centroid_idx in closest_centroid_idxs:
-                # move 20% closer
+                # move x% closer
                 end_coords = new_centroids[closest_centroid_idx]
                 end_coords[0] = start_coords[0] * move_perc + end_coords[0] * (1.0 - move_perc)
                 end_coords[1] = start_coords[1] * move_perc + end_coords[1] * (1.0 - move_perc)
                 new_centroids[closest_centroid_idx] = end_coords
         else:
             for closest_centroid_idx in closest_centroid_idxs:
-                # move 20% closer
                 end_coords = new_centroids[closest_centroid_idx]
-                # move 20% further away
                 slope = (end_coords[1] - start_coords[1]) / float(end_coords[0] - start_coords[0])
                 difference_x = end_coords[0] - start_coords[0]
-                delta_x = move_perc * difference_x if end_coords[0] > start_coords[0] else - move_perc * difference_x
+                delta_x = move_perc * difference_x
                 delta_y = delta_x * slope
                 new_centroids[closest_centroid_idx] = [end_coords[0] + delta_x, end_coords[1] + delta_y]
+
+        str1 = 'Shrinking' if too_big else 'Expanding'
+        print('{} {} district by moving {} district'.format(str1, invalid_idx, closest_centroid_idxs))
         new_districts = draw_districts(new_centroids)
-        is_valid, voters_by_district, is_too_big = is_valid_draw(new_districts, voters)
+        is_valid, voters_by_district, too_big, overflow = is_valid_draw(new_districts, voters)
+        iteration += 1
+
     return new_centroids, new_districts, voters_by_district
 
 
@@ -350,7 +360,7 @@ def voronoi_finite_polygons_2d(vor, radius=None):
 
 def draw_districts(centroids):
     vor = Voronoi(centroids)
-    voronoi_plot_2d(vor, show_vertices=False)
+    # voronoi_plot_2d(vor, show_vertices=False)
     regions, vertices = voronoi_finite_polygons_2d(vor)
 
     # Box the triangular boundary
@@ -369,27 +379,22 @@ def draw_districts(centroids):
 
 
 if __name__ == '__main__':
-    if WINNER_TAKE_ALL:
-        ndist = 243
-    else:
-        ndist = 81
+    ndist = 243 if WINNER_TAKE_ALL else 81
 
-    # Load voter data
-    # Note : The data in coordinate.txt has some error because some points outside the triangular boundary.
-    #file_path = '../../maps/g9/coordinates.txt'
-    #data = np.genfromtxt(file_path,dtype="i4,i4,U1", delimiter=',', names=['x1','x2','class'])
     # Extract Voters Positions
-    voters = extractVoters("../../maps/g8/twoParties.map")
+    voters = np.array(extractVoters("../../maps/g8/twoParties.map"))
+    np.random.shuffle(voters)
+    voters = voters[:NUM_VOTERS].tolist()
     V = np.vstack([np.array((i.x, i.y)) for i in voters])
-    # Shuffle the Voters Positions and Randomly Select 333333 Voters
-    # np.random.shuffle(V)
-    # V = V[0:NUM_VOTERS, :]
-    kmeans = MiniBatchKMeans(n_clusters=81, random_state=0, batch_size=32, max_iter=10, init_size=3 * 81).fit(V)
+    kmeans = MiniBatchKMeans(n_clusters=ndist, random_state=0, batch_size=32, max_iter=10, init_size=3 * 81).fit(V)
 
     # Generate Voronoi with generator points = cluster centroids
     # Note : Some generator points outside triangular boundary due to the error in coordinates.txt data
     centroids = kmeans.cluster_centers_
     districts = draw_districts(centroids)
+
+    # Ensure valid
+    centroids, districts, _ = sample_new_district_centers(centroids, districts, voters, sample=False)
 
     # LOAD INITIAL DISTRICTS
     initial_districts = copy.deepcopy(districts)  # Keep a hardcopy of this
@@ -417,44 +422,3 @@ if __name__ == '__main__':
         districts = all_candidate_districts[best_idx]
 
     print('Best gerrymander score (-1, 1) is {}'.format(len(districts)))
-
-# x_list = [v.x for v in voters]
-# y_list = [v.y for v in voters]
-# X = np.zeros((len(x_list),2))
-# X[:,0] = np.matrix(x_list)
-# X[:,1] = np.matrix(y_list)
-
-# kmeans = KMeans(n_clusters=243, init='k-means++', max_iter=300, n_init=10, random_state=0)
-# pred_y = kmeans.fit_predict(X)
-# #plt.scatter(X[:,0], X[:,1], s=10, edgecolors='none', c='green')
-# plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=10, c='red')
-# plt.plot([0,1000,500,0],[0,0,500*math.sqrt(3),0])
-# plt.show()
-#
-# v = Voronoi(kmeans.cluster_centers_)
-# voronoi_plot_2d(v, show_vertices=False)
-# plt.plot([0,1000,500,0],[0,0,500*math.sqrt(3),0])
-# plt.xlim(0,1000)
-# plt.ylim(0,1000)
-#
-# # Load Data
-# file_path = 'coordinates.txt'
-# data = np.genfromtxt(file_path,dtype="i4,i4,U1",
-# delimiter=',',names=['x1','x2','class'])
-# print(data.shape)
-#
-# V = np.vstack([np.array((x[0],x[1])) for x in data])
-# np.random.shuffle(V)
-# V = V[0:333333,:]
-#
-# kmeans = KMeans(n_clusters=243, init='k-means++', max_iter=300, n_init=10, random_state=0)
-# pred_y = kmeans.fit_predict(V)
-# plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s=10, c='red')
-# plt.plot([0,1000,500,0],[0,0,500*math.sqrt(3),0])
-# plt.show()
-#
-# v = Voronoi(kmeans.cluster_centers_)
-# voronoi_plot_2d(v, show_vertices=False)
-# plt.plot([0,1000,500,0],[0,0,500*math.sqrt(3),0])
-# plt.xlim(0,1000)
-# plt.ylim(0,1000)
