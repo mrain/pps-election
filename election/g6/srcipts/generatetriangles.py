@@ -40,7 +40,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--module', '-m', type=str, default="election.g6.src.trianglegenerator")
     parser.add_argument('--input', '-i', type=str, default="maps/g2/2party.map")
-    parser.add_argument('--output', '-o', type=str, default="maps/g6/0_g2_2party")
+    parser.add_argument('--output', '-o', type=str, default="maps/g6/0_g2_2party_2")
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--representatives', type=int, default=3)
     args = parser.parse_args()

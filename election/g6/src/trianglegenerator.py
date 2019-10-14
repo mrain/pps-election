@@ -106,7 +106,7 @@ def adaptive_partition(voters: List[Voter], population_per_triangle=None) -> Lis
     if not population_per_triangle:
         population_per_triangle = len(voters) // (81 * 7)
     points_by_level = _find_level_points(voters, population_per_triangle)
-    # points_by_level = _horizontal_adjustment(voters, points_by_level)  # comment out this to do naive
+    points_by_level = _horizontal_adjustment(voters, points_by_level)  # comment out this to do naive
 
     result = []
     for level in range(len(points_by_level) - 1):

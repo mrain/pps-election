@@ -104,7 +104,7 @@ def get_districts_from_triangles(
     pre = [(len(d.polygons), d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
     pre_wasted = wasted_vote_metric(districts)
     # Iterative Gerrymandering
-    niters = 0
+    niters = 1000
     nsample = 50
     for i in range(niters):
         # sample random vertices pairs
