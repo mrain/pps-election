@@ -6,7 +6,6 @@ public class NewPoint {
  
     private double x = 0;
     private double y = 0;
-    private int clusterNumber = 0;
  
     public NewPoint(double x, double y)
     {
@@ -28,14 +27,6 @@ public class NewPoint {
     
     public double getY() {
         return this.y;
-    }
-    
-    public void setCluster(int n) {
-        this.clusterNumber = n;
-    }
-    
-    public int getCluster() {
-        return this.clusterNumber;
     }
     
     // Calculate the distance between two points

@@ -197,17 +197,17 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     private static List<Voter> obtainVoters(String mapPath) throws IllegalArgumentException, FileNotFoundException {
         List<Voter> voters = new ArrayList<Voter>();
         File file = new File(mapPath);
-        Scanner sc = new Scanner(file);
-        int numVoters = sc.nextInt();
-        int numParties = sc.nextInt();
-        for (int i = 0; i < numVoters; ++ i) {
+        Scanner scanner = new Scanner(file);
+        int numVoters = scanner.nextInt();
+        int numParties = scanner.nextInt();
+        for (int i = 0; i < numVoters; ++i) {
             double x, y;
             List<java.lang.Double> pref = new ArrayList<java.lang.Double>();
-            x = sc.nextDouble();
-            y = sc.nextDouble();
+            x = scanner.nextDouble();
+            y = scanner.nextDouble();
             Point2D location = new Point2D.Double(x, y);
             for (int j = 0; j < numParties; ++j)
-                pref.add(sc.nextDouble());
+                pref.add(scanner.nextDouble());
             voters.add(new Voter(location, pref));
         }
         return voters;
@@ -227,6 +227,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     	
         // Execute K-Means
         KMeans kmeans = new KMeans(voters, NUM_CLUSTERS);
+        
         kmeans.execute();
         List<Cluster> clusters = kmeans.getClusters();
         
