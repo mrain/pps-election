@@ -331,15 +331,21 @@ def draw_districts(centroids):
 
 
 if __name__ == '__main__':
+    if WINNER_TAKE_ALL:
+        ndist = 243
+    else:
+        ndist = 81
+
     # Load voter data
     # Note : The data in coordinate.txt has some error because some points outside the triangular boundary.
-    file_path = '../../maps/g9/coordinates.txt'
-    data = np.genfromtxt(file_path,dtype="i4,i4,U1", delimiter=',', names=['x1','x2','class'])
+    #file_path = '../../maps/g9/coordinates.txt'
+    #data = np.genfromtxt(file_path,dtype="i4,i4,U1", delimiter=',', names=['x1','x2','class'])
     # Extract Voters Positions
-    V = np.vstack([np.array((x[0], x[1])) for x in data])
+    voters = extractVoters("../../maps/g8/twoParties.map")
+    V = np.vstack([np.array((i.x, i.y)) for i in voters])
     # Shuffle the Voters Positions and Randomly Select 333333 Voters
-    np.random.shuffle(V)
-    V = V[0:NUM_VOTERS, :]
+    # np.random.shuffle(V)
+    # V = V[0:NUM_VOTERS, :]
     kmeans = MiniBatchKMeans(n_clusters=81, random_state=0, batch_size=32, max_iter=10, init_size=3 * 81).fit(V)
 
     # Generate Voronoi with generator points = cluster centroids
@@ -349,9 +355,6 @@ if __name__ == '__main__':
 
     # LOAD INITIAL DISTRICTS
     initial_districts = copy.deepcopy(districts)  # Keep a hardcopy of this
-
-    # LOAD voters
-    voters = extractVoters("../../maps/g8/twoParties.map")
 
     best_score = -1
     for mut_idx in range(1000):
