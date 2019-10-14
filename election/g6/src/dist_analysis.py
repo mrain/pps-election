@@ -1,6 +1,7 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from shapely.geometry import Point, Polygon
+
 
 def read_data(file):
     # Read the data for voters and districts
@@ -12,20 +13,21 @@ def read_data(file):
     n_voters = int(contents[0].split()[0])
     voters = {}
     for i in range(n_voters):
-        this_voter_str = contents[i+1].split()
+        this_voter_str = contents[i + 1].split()
         this_voter = tuple([eval(x) for x in this_voter_str])
         voters[i] = this_voter
     # Step 3: Get the districts
-    n_dists = int(contents[n_voters+1])
+    n_dists = int(contents[n_voters + 1])
     dists = {}
     for i in range(n_dists):
         dists[i] = []
-        this_dist_str = contents[i+n_voters+2].split()
+        this_dist_str = contents[i + n_voters + 2].split()
         n_vertices = int(this_dist_str[0])
         for j in range(n_vertices):
-            x, y = eval(this_dist_str[j*2+1]), eval(this_dist_str[j*2+2])
+            x, y = eval(this_dist_str[j * 2 + 1]), eval(this_dist_str[j * 2 + 2])
             dists[i].append((x, y))
     return (voters, dists)
+
 
 def get_dist_voters(voters, dists):
     # Get the voters in each district (Warning: May be slow)
@@ -45,6 +47,7 @@ def get_dist_voters(voters, dists):
                 break
     return dist_voters
 
+
 def get_dist_results(dist_voters):
     # Get the voting results in each district (number of votes each party gets)
     # Step 1: Initialization
@@ -61,6 +64,7 @@ def get_dist_results(dist_voters):
             dist_results[-1][this_party] += 1
             dist_results[d][this_party] += 1
     return dist_results
+
 
 def get_one_dist_seats(dist_votes, n_rep):
     # Get the number of seats for each party in one district
@@ -91,7 +95,8 @@ def get_one_dist_seats(dist_votes, n_rep):
         n_elected += 1
         votes[p] = 0
     return seats
-    
+
+
 def get_all_dist_seats(dist_results, n_rep):
     # Get the numbers of seats for each party in all districts
     # Step 1: Initialization
@@ -100,6 +105,7 @@ def get_all_dist_seats(dist_results, n_rep):
     for d in dist_results:
         dist_seats[d] = get_one_dist_seats(dist_results[d], n_rep)
     return dist_seats
+
 
 def get_total_seats(dist_seats):
     # Get the total number of seats for each party
@@ -113,6 +119,7 @@ def get_total_seats(dist_seats):
             for i in range(n_parties):
                 total_seats[i] += dist_seats[d][i]
     return total_seats
+
 
 def get_wasted_votes(dist_results, dist_seats):
     # Get the number of wasted votes in each district for each party
@@ -145,6 +152,7 @@ def get_wasted_votes(dist_results, dist_seats):
             wasted[-2][i] += wasted[d][i] / sum(dist_results[d])
     return wasted
 
+
 def get_efficiency_gap(dist_results, dist_seats):
     # Get the efficiency gap
     # Result is positive if Party 2 wasts more votes (Party 1 has advantage), negative otherwise
@@ -156,7 +164,8 @@ def get_efficiency_gap(dist_results, dist_seats):
     gap = (wasted[-1][1] - wasted[-1][0]) / sum(dist_results[-1])
     return gap
 
-def get_new_voters(dist_voters, delta, sd = 0.05, seed = 1234):
+
+def get_new_voters(dist_voters, delta, sd=0.05, seed=1234):
     # Get new party preferences for each voter following certain changes
     # Step 1: Initialization
     n_parties = len(delta)  # number of parties
@@ -171,9 +180,10 @@ def get_new_voters(dist_voters, delta, sd = 0.05, seed = 1234):
             this_new_preference = [0 for i in range(n_parties)]
             for p in range(n_parties):
                 # Change the party preferences with delta and random noise
-                this_new_preference[p] = max(min(dist_voters[d][v][p+2] + np.random.normal(delta[p], sd), 1), 0)
+                this_new_preference[p] = max(min(dist_voters[d][v][p + 2] + np.random.normal(delta[p], sd), 1), 0)
             new_dist_voters[d][v] = tuple(this_new_voter + this_new_preference)
     return new_dist_voters
+
 
 def get_partisanship_bias(dist_voters, n_rep):
     # Get partisanship bias
@@ -192,6 +202,7 @@ def get_partisanship_bias(dist_voters, n_rep):
         new_total_seats = get_total_seats(new_dist_seats)
         new_results[d] = {"results": new_dist_results[-1], "seats": new_total_seats}
     return new_results
+
 
 def get_partisanship_curve(new_results, file):
     # Get partisanship curve

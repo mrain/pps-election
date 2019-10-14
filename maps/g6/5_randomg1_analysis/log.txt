@@ -1,0 +1,38 @@
+Map Analysis
+
+28 district(s) have too many sides:
+District 0 contains 10 sides
+District 4 contains 10 sides
+District 5 contains 10 sides
+District 7 contains 10 sides
+District 11 contains 10 sides
+District 14 contains 10 sides
+District 18 contains 10 sides
+District 21 contains 10 sides
+District 22 contains 10 sides
+District 27 contains 10 sides
+District 28 contains 10 sides
+District 30 contains 10 sides
+District 36 contains 10 sides
+District 39 contains 10 sides
+District 41 contains 10 sides
+District 48 contains 10 sides
+District 55 contains 10 sides
+District 56 contains 10 sides
+District 58 contains 10 sides
+District 60 contains 10 sides
+District 61 contains 10 sides
+District 62 contains 10 sides
+District 63 contains 10 sides
+District 67 contains 10 sides
+District 71 contains 10 sides
+District 75 contains 10 sides
+District 77 contains 10 sides
+District 78 contains 10 sides
+
+Party 1 gets 194543 votes
+Party 2 gets 138790 votes
+
+Party 1 gets 153 representatives
+Party 2 gets 90 representatives
+
