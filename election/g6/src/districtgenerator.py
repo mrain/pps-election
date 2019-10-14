@@ -23,6 +23,7 @@ def get_voters_in_polygon(polygon: Polygon, voters: List[Voter]) -> List[Polygon
 
 
 def naive_partition(n: int) -> List[Polygon]:
+    print("adada")
     edge_length = 1000 / n
     x_diff = 1 / 2 * edge_length
     y_diff = math.sqrt(3) / 2 * edge_length
