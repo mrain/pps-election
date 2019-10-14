@@ -10,7 +10,7 @@ from shapely.geometry import Point, Polygon, LineString
 from scipy.spatial import Voronoi, voronoi_plot_2d
 
 WINNER_TAKE_ALL = False
-NUM_VOTERS = 3000
+NUM_VOTERS = 30000
 
 
 class Voter:
@@ -107,8 +107,8 @@ def asymmetry_score(districts, voters):
         total_wasted_votes += np.array(wasted_votes)
     avg_wasted_votes = total_wasted_votes / float(len(variations))
     avg_efficiency_gap = (avg_wasted_votes[0] - avg_wasted_votes[1]) / float(len(voters))
-    avg_pref_variation = np.mean(np.array(seats_by_vote_perc.keys()))
-    assert avg_pref_variation > 0.45 in avg_pref_variation < 0.55
+    avg_pref_variation = np.mean(np.array(list(seats_by_vote_perc.keys())))
+    assert avg_pref_variation > 0.45 and avg_pref_variation < 0.55
     avg_votes_to_seats = np.mean(np.array(seats_by_vote_perc.values()))
     avg_votes_to_seats_norm = 2 * avg_votes_to_seats - 1
     return (avg_votes_to_seats_norm + avg_efficiency_gap) / 0.5
@@ -125,6 +125,13 @@ def find_voter_district(districts, voter, recent_district_idxs=[]):
 
 
 def compute_seat_count(party_votes):
+    if sum(party_votes) == 0:
+        # TODO fix this (shouldn't have no voters in a district)
+        if random() > 0.5:
+            return [2, 1]
+        else:
+            return [1, 2]
+
     p1_pref = party_votes[0] / float(sum(party_votes))
     p2_pref = party_votes[1] / float(sum(party_votes))
     if WINNER_TAKE_ALL:
@@ -186,7 +193,22 @@ def sample_vote(pref):
 
 
 def is_valid_draw(new_districts, voters):
-    # TODO implement this
+    district_voters = np.zeros([len(districts)])
+    last_districts = []
+    for voter in voters:
+        district_idx = find_voter_district(new_districts, voter, last_districts)
+        if district_idx not in last_districts:
+            last_districts.append(district_idx)
+            if len(last_districts) > 3:
+                last_districts = last_districts[1:]
+        district_voters[district_idx] += 1
+    N = float(len(voters))
+    mean = N / float(len(new_districts))
+    lower = mean * 0.9
+    upper = mean * 1.1
+    for idx in range(len(new_districts)):
+        if district_voters[idx] < lower or district_voters[idx] > upper:
+            return False
     return True
 
 
@@ -316,7 +338,7 @@ if __name__ == '__main__':
     # Shuffle the Voters Positions and Randomly Select 333333 Voters
     np.random.shuffle(V)
     V = V[0:NUM_VOTERS, :]
-    kmeans = MiniBatchKMeans(n_clusters=81,random_state=0,batch_size=16,max_iter=10).fit(V)
+    kmeans = MiniBatchKMeans(n_clusters=81, random_state=0, batch_size=32, max_iter=5, init_size=3 * 81).fit(V)
 
     # Generate Voronoi with generator points = cluster centroids
     # Note : Some generator points outside tringular boundary due to the error in coordinates.txt data
