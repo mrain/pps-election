@@ -8,27 +8,94 @@ import javafx.util.Pair;
 public class Municipal {
 	
 	private static final double EPSILON = 1e-8;
+	private final int P = 0;
 
 	private Map<Pair<Integer, Integer>, Polygon2D> map = new HashMap<>();
 	private Polygon2D polygon = new Polygon2D();
 	private Set<Point2D> seenPoints = new HashSet<>();
-	private int numTriangles = 0;
+	private List<Voter> voters = new ArrayList<>();
+	private int numTriangles = 1;
+	private int numVoters = 0;
+	private List<Double> voterPref = new ArrayList<>();; 
+	private List<Double> voterStrength = new ArrayList<>();;
+	private List<Integer> voterCount = new ArrayList<>();;
+	private int upperPop = 4526;
+	private int lowerPop = 3703;
+	private double target = 0.0;
 
-	public Municipal(Pair<Pair<Integer, Integer>, Polygon2D> newTriangle) {
-		this.map.put(newTriangle.getKey(), newTriangle.getValue());
-		this.polygon = newTriangle.getValue();
-		for (Point2D p : newTriangle.getValue().getPoints()) {
+
+	public Municipal(Pair<Integer, Integer> coordinates, Polygon2D newTriangle, List<Voter> voters) {
+		this.map.put(coordinates, newTriangle);
+		this.polygon = newTriangle;
+		for (Point2D p : newTriangle.getPoints()) {
 			this.seenPoints.add(p);
 		}
-		this.numTriangles++;
+		this.voters = voters;
+		updateVoterValues();
+	}
+
+	private void updateVoterValues(){
+		numVoters = voters.size();
+		int oneCount = 0;
+		int twoCount = 0;
+		double onePrefDiff = 0.0;
+		double twoPrefDiff = 0.0;
+		for(Voter v : voters){
+			List<Double> pref = v.getPreference();
+			if(pref.get(0) > pref.get(1)){
+				oneCount++;
+				onePrefDiff += pref.get(0) - pref.get(1);
+			}
+			else{
+				twoCount++;
+				twoPrefDiff += pref.get(1) - pref.get(0);
+			}
+		}
+		
+		voterCount.add(oneCount);
+		voterCount.add(twoCount);
+
+		voterPref.add(oneCount / (double) numVoters);
+		voterPref.add(twoCount/ (double) numVoters);
+
+		voterStrength.add(onePrefDiff / oneCount);
+		voterStrength.add(twoPrefDiff / twoCount);
+
+		//calculate target
+	}
+
+	// public List<Integer> calculateCount(List<Integer> voters){}
+	// public List<Double> calculatePref(List<Integer> voters){}
+	// public List<Double> calculateStrength(List<Integer> voters){}
+
+	public boolean canAdd(Pair<Integer, Integer> coordinates, Municipal newMunicipal, int upperPop) {
+		Polygon2D newTriangle = newMunicipal.getPolygon();
+		int newVoters = newMunicipal.getNumVoters();
+		if (numVoters + newVoters > upperPop) return false;
+		if (newTriangle.getPoints().size() != 3) return false;
+		if (map.keySet().contains(coordinates)) return false;
+		if (isInvalidShapeClosing(coordinates, newTriangle)) return false;
+		// if (isTooManySides(newTriangle)) return false;
+		return true;
+	}
+
+	public boolean shouldAdd(List<Voter> newVoters){
+		// calculate new values
+		// compare values to target
+		// decide
+		return false;
 	}
 
 	// assume that the new polygon is a triangle
-	public boolean add(Pair<Pair<Integer, Integer>, Polygon2D> newTriangle) {
-		if (map.keySet().contains(newTriangle.getKey())) return false;
-		if (isInvalidShapeClosing(newTriangle)) return false;
-		this.map.put(newTriangle.getKey(), newTriangle.getValue());
-		this.updatePolygon(newTriangle.getValue());
+	public boolean add(Pair<Integer, Integer> coordinates, Polygon2D newTriangle, List<Voter> voters) {
+		if (newTriangle.getPoints().size() != 3) return false;
+		if (map.keySet().contains(coordinates)) return false;
+		if (isInvalidShapeClosing(coordinates, newTriangle)) return false;
+		// if (isTooManySides(newTriangle)) return false;
+		this.map.put(coordinates, newTriangle);
+		this.voters.addAll(voters);
+		this.updateVoterValues();
+		this.updatePolygon(newTriangle);
 		this.numTriangles++;
 		return true;
 	}
@@ -110,12 +177,34 @@ public class Municipal {
 		// System.out.println("After: " + this.polygon.toString());
 	}
 
-	private boolean isInvalidShapeClosing(Pair<Pair<Integer, Integer>, Polygon2D> newTriangle) {
+	// maybe don't use this because it's very restrictive... instead simplify the resulting polygon?
+	private boolean isTooManySides(Polygon2D newTriangle) {
+		Polygon2D testPolygon = new Polygon2D();
+		for (Point2D p : this.polygon.getPoints()) {
+			testPolygon.append(p);
+		}
+		Municipal testMunicipal = new Municipal(new Pair<>(-1,-1), testPolygon, new ArrayList<>());
+		testMunicipal.updatePolygon(newTriangle);
+		List<Point2D> testMunicipalPoints = testMunicipal.getPolygon().getPoints();
+		int count = 1;
+		Point2D current = testMunicipalPoints.get(0);
+		Point2D next = testMunicipalPoints.get(1);
+		double slope = (next.getY() - current.getY())/(next.getX() - current.getX());
+		for (int i = 2; i < testMunicipalPoints.size(); i++) {
+			current = next;
+			next = testMunicipalPoints.get(i);
+			double newSlope = (next.getY() - current.getY())/(next.getX() - current.getX());
+			if (Math.abs(newSlope - slope) > EPSILON) count++;
+		}
+		return count > 9;
+	}
+
+	private boolean isInvalidShapeClosing(Pair<Integer, Integer> coordinate, Polygon2D newTriangle) {
 		// a closing of a shape is invalid if 3 of the triangle's points have been seen, but only 1 of its neighbors!
-		Set<Pair<Integer, Integer>> neighboringCoordinates = new HashSet<>(this.getNeighboringCoordinates(newTriangle.getKey()));
+		Set<Pair<Integer, Integer>> neighboringCoordinates = new HashSet<>(this.getNeighboringCoordinates(coordinate));
 		neighboringCoordinates.retainAll(this.map.keySet());
 		Set<Point2D> overlappingPoints = new HashSet<>();
-		for(Point2D p1 : newTriangle.getValue().getPoints()) {
+		for(Point2D p1 : newTriangle.getPoints()) {
 			for(Point2D p2 : this.seenPoints) {
 				if (approxEquals(p1, p2)) {
 					overlappingPoints.add(p1);
@@ -210,11 +299,39 @@ public class Municipal {
             neighbors.add(new Pair<Integer, Integer>(x-1, y));
         }
         return neighbors;
-    }
+	}
+	
+	public boolean isValid(){
+		return numVoters < upperPop && numVoters > lowerPop;
+	}
 
     public int getNumTriangles() {
     	return this.numTriangles;
+	}
+	
+	public int getNumVoters() {
+    	return this.numVoters;
     }
+
+    public List<Voter> getVoters() {
+    	return this.voters;
+	}
+
+	public int getPopulation(){
+		return this.voters.size();
+	}
+
+	public List<Integer> getVoterCount(){
+		return this.voterCount;
+	}
+
+	public List<Double> getVoterPref(){
+		return this.voterPref;
+	}
+
+	public List<Double> getVoterStrength(){
+		return this.voterStrength;
+	}
 
     public void print() {
     	System.out.println("Municipal:");
