@@ -258,6 +258,7 @@ def get_partisanship_bias(dist_voters, gap, n_rep, truncate = True):
     deltas += [3 * gap, 4 * gap, 5 * gap, 6 * gap, 8 * gap, 10 * gap, 15 * gap]
     if abs(15 * gap) < 0.5:
         deltas = [-0.5, -0.4, -0.3, -0.2, -0.1, -0.05] + deltas + [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+    deltas.sort()
     new_results = {}
     for d in deltas:
         # Get new voting results and number of seats for each delta
