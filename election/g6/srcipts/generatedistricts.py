@@ -17,9 +17,9 @@ def main(options):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--module', '-m', type=str, default="election.g6.src.districtgenerator")
-    parser.add_argument('--input', '-i', type=str, default="maps/g6/0_1_2.pickle")
-    parser.add_argument('--input-map', '-im', type=str, default="maps/g6/1_2.map")
-    parser.add_argument('--output', '-o', type=str, default="maps/g6/5_1_2.map")
+    parser.add_argument('--input', '-i', type=str, default="maps/g6/0_randomg1_2.pickle")
+    parser.add_argument('--input-map', '-im', type=str, default="maps/g1/randomg1_2.map")
+    parser.add_argument('--output', '-o', type=str, default="maps/g6/5_randomg1_2_districts.map")
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--representatives', type=int, default=3)
     args = parser.parse_args()
