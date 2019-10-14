@@ -3,28 +3,27 @@ package election.g3;
 import election.sim.Polygon2D;
 import election.sim.Voter;
 import java.awt.geom.Point2D;
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.awt.geom.Point2D.Double;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
-import java.util.Scanner;
 import java.util.stream.Collectors;
 
 /**
  *
  * @author Group 3
  */
-public class DistrictGenerator implements election.sim.DistrictGenerator {
+public class OldDistrictGenerator implements election.sim.DistrictGenerator {
     
     private final static double NUM_VERT_TRIANGLES = 9.0;
-    private final static int NUM_CLUSTERS = 81;
     private final double scale = 1000.0;
     private Random random;
     private List<Voter> voters;
     
-    public DistrictGenerator() {
+    public OldDistrictGenerator() {
         random = new Random();
     }
     
@@ -32,21 +31,8 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     public List<Polygon2D> getDistricts(List<Voter> voters, int repPerDistrict, long seed) {
     	this.voters = voters;
         int numVoters = voters.size();
+        //int numParties = voters.get(0).getPreference().size();
         int numDistricts = 243 / repPerDistrict;
-        
-        // Execute K-Means
-        KMeans kmeans = new KMeans(voters, NUM_CLUSTERS);
-        kmeans.execute();
-        List<Cluster> clusters = kmeans.getClusters();
-        
-        // Execute Voronoi
-        List<NewPoint> centroids = new ArrayList<>();
-        for(Cluster cluster : clusters) {
-        	centroids.add(cluster.getCentroid());
-        }
-        Voronoi voronoi = new Voronoi(voters, centroids);
-        voronoi.execute();
-        voronoi.print();
         
         Polygon2D threeLand = new Polygon2D();
         threeLand.append(0, 0);
@@ -60,6 +46,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                     getMaxPopulation(numVoters, numDistricts),
                     1.0 / 3
             );
+            
             return result;
         } catch (Exception e) {
             e.printStackTrace();
@@ -191,52 +178,5 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     
     protected int getMaxPopulation(int numVoters, int numDistricts) {
         return (int) Math.floor(1.1 * numVoters / numDistricts);
-    }
-    
-    // For testing purposes, to be used with the main method
-    private static List<Voter> obtainVoters(String mapPath) throws IllegalArgumentException, FileNotFoundException {
-        List<Voter> voters = new ArrayList<Voter>();
-        File file = new File(mapPath);
-        Scanner sc = new Scanner(file);
-        int numVoters = sc.nextInt();
-        int numParties = sc.nextInt();
-        for (int i = 0; i < numVoters; ++ i) {
-            double x, y;
-            List<java.lang.Double> pref = new ArrayList<java.lang.Double>();
-            x = sc.nextDouble();
-            y = sc.nextDouble();
-            Point2D location = new Point2D.Double(x, y);
-            for (int j = 0; j < numParties; ++j)
-                pref.add(sc.nextDouble());
-            voters.add(new Voter(location, pref));
-        }
-        return voters;
-    }
-    
-    // For testing purposes, since the generator times out when applying KMeans
-    public static void main(String[] args) {
-    	String mapPath = "maps/g3/g3Oct7ThreeParty.map";
-    	List<Voter> voters = null;
-		try {
-			voters = obtainVoters(mapPath);
-		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-    	
-        // Execute K-Means
-        KMeans kmeans = new KMeans(voters, NUM_CLUSTERS);
-        kmeans.execute();
-        List<Cluster> clusters = kmeans.getClusters();
-        
-        // Execute Voronoi
-        List<NewPoint> centroids = new ArrayList<>();
-        for(Cluster cluster : clusters) {
-        	centroids.add(cluster.getCentroid());
-        }
-        Voronoi voronoi = new Voronoi(voters, centroids);
-        voronoi.execute();
-        voronoi.print();
-    }
+    }    
 } 
