@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from collections import defaultdict
 import matplotlib.pyplot as plt
 import math
 import copy
@@ -10,7 +11,7 @@ from shapely.geometry import Point, Polygon, LineString
 from scipy.spatial import Voronoi, voronoi_plot_2d
 
 WINNER_TAKE_ALL = False
-NUM_VOTERS = 30000
+NUM_VOTERS = 333333
 
 
 class Voter:
@@ -93,7 +94,7 @@ def sample_new_point(prev_x, prev_y, area):
             return new_x, new_y
 
 
-def asymmetry_score(districts, voters):
+def asymmetry_score(districts, voters, voters_by_district):
     seats_by_vote_perc = {}
     total_wasted_votes = np.zeros([2, ])
     variations = np.arange(0.25, 1.0, .25)
@@ -101,7 +102,7 @@ def asymmetry_score(districts, voters):
         new_voters = copy.deepcopy(voters)
         for v in new_voters:
             v.prefs = adjust_voter_preference(v.prefs, target_p2=target_v)
-        popular_vote, seats, wasted_votes = get_result(districts, new_voters)
+        popular_vote, seats, wasted_votes = get_result(districts, new_voters, voters_by_district)
         p2_vote_perc = popular_vote[1] / float(len(voters))
         seats_by_vote_perc[p2_vote_perc] = seats[1] / 243.0
         total_wasted_votes += np.array(wasted_votes)
@@ -162,17 +163,13 @@ def compute_seats(district_votes):
     return seats, wasted_votes
 
 
-def get_result(districts, voters):
+def get_result(districts, voters, voters_by_district):
     district_votes = np.zeros([len(districts), 2])
-    last_districts = []
-    for voter in voters:
-        district_idx = find_voter_district(districts, voter, last_districts)
-        if district_idx not in last_districts:
-            last_districts.append(district_idx)
-            if len(last_districts) > 3:
-                last_districts = last_districts[1:]
-        vote = sample_vote(voter.prefs)
-        district_votes[district_idx, vote] += 1
+    for didx in voters_by_district:
+        voter_idxs = voters_by_district[didx]
+        for vidx in voter_idxs:
+            vote = sample_vote(voters[vidx].prefs)
+            district_votes[didx, vote] += 1
     popular_vote = district_votes.sum(0)
     seats, wasted_votes = compute_seats(district_votes)
     return popular_vote, seats, wasted_votes
@@ -194,22 +191,26 @@ def sample_vote(pref):
 
 def is_valid_draw(new_districts, voters):
     district_voters = np.zeros([len(districts)])
+    voters_by_district = defaultdict(list)
     last_districts = []
-    for voter in voters:
+    N = float(len(voters))
+    mean = N / float(len(new_districts))
+    lower = mean * 0.9
+    upper = mean * 1.1
+    for vidx, voter in enumerate(voters):
         district_idx = find_voter_district(new_districts, voter, last_districts)
+        voters_by_district[district_idx].append(vidx)
         if district_idx not in last_districts:
             last_districts.append(district_idx)
             if len(last_districts) > 3:
                 last_districts = last_districts[1:]
         district_voters[district_idx] += 1
-    N = float(len(voters))
-    mean = N / float(len(new_districts))
-    lower = mean * 0.9
-    upper = mean * 1.1
+        if district_voters[district_idx] > upper:
+            return False, None
     for idx in range(len(new_districts)):
         if district_voters[idx] < lower or district_voters[idx] > upper:
-            return False
-    return True
+            return False, voters_by_district
+    return True, voters_by_district
 
 
 def sample_new_district_centers(centroids, districts, voters):
@@ -218,9 +219,10 @@ def sample_new_district_centers(centroids, districts, voters):
         new_pt = sample_new_point(centroid[0], centroid[1], np.sqrt(district.area))
         new_centroids[idx, :] = new_pt
     new_districts = draw_districts(new_centroids)
-    if not is_valid_draw(new_districts, voters):
-        return sample_new_district_centers(districts, voters)
-    return new_centroids, new_districts
+    is_valid, voters_by_district = is_valid_draw(new_districts, voters)
+    if not is_valid:
+        return sample_new_district_centers(centroids, districts, voters)
+    return new_centroids, new_districts, voters_by_district
 
 
 # Clip the Voronoi Diagram
@@ -332,16 +334,16 @@ if __name__ == '__main__':
     # Load voter data
     # Note : The data in coordinate.txt has some error because some points outside the triangular boundary.
     file_path = '../../maps/g9/coordinates.txt'
-    data = np.genfromtxt(file_path,dtype="i4,i4,U1", delimiter=',',names=['x1','x2','class'])
+    data = np.genfromtxt(file_path,dtype="i4,i4,U1", delimiter=',', names=['x1','x2','class'])
     # Extract Voters Positions
-    V = np.vstack([np.array((x[0],x[1])) for x in data])
+    V = np.vstack([np.array((x[0], x[1])) for x in data])
     # Shuffle the Voters Positions and Randomly Select 333333 Voters
     np.random.shuffle(V)
     V = V[0:NUM_VOTERS, :]
-    kmeans = MiniBatchKMeans(n_clusters=81, random_state=0, batch_size=32, max_iter=5, init_size=3 * 81).fit(V)
+    kmeans = MiniBatchKMeans(n_clusters=81, random_state=0, batch_size=32, max_iter=10, init_size=3 * 81).fit(V)
 
     # Generate Voronoi with generator points = cluster centroids
-    # Note : Some generator points outside tringular boundary due to the error in coordinates.txt data
+    # Note : Some generator points outside triangular boundary due to the error in coordinates.txt data
     centroids = kmeans.cluster_centers_
     districts = draw_districts(centroids)
 
@@ -359,10 +361,11 @@ if __name__ == '__main__':
         gerrymander_scores = []
         N = 10
         for n in range(N):
-            candidate_centroids, candidate_districts = sample_new_district_centers(centroids, districts, voters)
+            candidate_centroids, candidate_districts, voters_by_district = sample_new_district_centers(
+                centroids, districts, voters)
             all_candidate_districts.append(candidate_districts)
             all_candidate_centroids.append(candidate_centroids)
-            gerrymander_score = asymmetry_score(candidate_districts, voters)
+            gerrymander_score = asymmetry_score(candidate_districts, voters, voters_by_district)
             gerrymander_scores.append(gerrymander_score)
 
         gerrymander_scores = np.array(gerrymander_scores)
