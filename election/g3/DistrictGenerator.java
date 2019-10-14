@@ -34,19 +34,21 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         int numVoters = voters.size();
         int numDistricts = 243 / repPerDistrict;
         
-        // Execute K-Means
-        KMeans kmeans = new KMeans(voters, NUM_CLUSTERS);
-        kmeans.execute();
-        List<Cluster> clusters = kmeans.getClusters();
-        
-        // Execute Voronoi
-        List<NewPoint> centroids = new ArrayList<>();
-        for(Cluster cluster : clusters) {
-        	centroids.add(cluster.getCentroid());
+        if (false) { //temporary disable
+            // Execute K-Means
+            KMeans kmeans = new KMeans(voters, NUM_CLUSTERS);
+            kmeans.execute();
+            List<Cluster> clusters = kmeans.getClusters();
+
+            // Execute Voronoi
+            List<NewPoint> centroids = new ArrayList<>();
+            for(Cluster cluster : clusters) {
+                    centroids.add(cluster.getCentroid());
+            }
+            Voronoi voronoi = new Voronoi(voters, centroids);
+            voronoi.execute();
+            voronoi.print();
         }
-        Voronoi voronoi = new Voronoi(voters, centroids);
-        voronoi.execute();
-        voronoi.print();
         
         Polygon2D threeLand = new Polygon2D();
         threeLand.append(0, 0);
@@ -58,7 +60,9 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                     voters,
                     getMinPopulation(numVoters, numDistricts),
                     getMaxPopulation(numVoters, numDistricts),
-                    1.0 / 3
+                    1.0 / 3,
+                    repPerDistrict,
+                    0
             );
             return result;
         } catch (Exception e) {
@@ -67,7 +71,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         }
     }
     
-    protected List<Polygon2D> fixPolygon(Polygon2D polygon, List<Voter> voters, int minPop, int maxPop, double splitProportion) throws Exception {
+    protected List<Polygon2D> fixPolygon(Polygon2D polygon, List<Voter> voters, int minPop, int maxPop, double splitProportion, int repPerDistrict, int favoredParty) throws Exception {
         List<Voter> vInD = getVotersInPolygon(voters, polygon);
         if (vInD.size() < minPop) {
             throw new Exception("Not enough people in polygon. Only " + vInD.size() + ", minimum of " + minPop + " needed");
@@ -83,7 +87,9 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                         getVotersInPolygon(voters, poly1),
                         minPop,
                         maxPop,
-                        1.0 / 3
+                        1.0 / 3,
+                        repPerDistrict,
+                        favoredParty
                 );
                 Polygon2D poly2 = createPolygonFromPoints(Arrays.asList(splitVertex, oppositePoint, otherPoints.get(1)));
                 result.addAll(fixPolygon(
@@ -91,7 +97,9 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                         getVotersInPolygon(voters, poly2),
                         minPop,
                         maxPop,
-                        splitProportion == 0.5 ? 1.0 / 3 : 0.5
+                        splitProportion == 0.5 ? 1.0 / 3 : 0.5,
+                        repPerDistrict,
+                        favoredParty
                 ));
                 return result;
             } else {
@@ -127,6 +135,92 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         }
         return selected;
         //return polygon.getPoints().get(random.nextInt(3));
+    }
+    
+    protected List<Polygon2D> pickSplit(Polygon2D polygon, List<Voter> voters, int minPop, int maxPop, double splitProportion, int repPerDistrict, int favoredParty) {
+        Polygon2D selPoly1 = null, selPoly2 = null;
+        int wastedVotes = Integer.MAX_VALUE;
+        List<Voter> vInD = getVotersInPolygon(voters, polygon);
+        for (Point2D splitVertex : polygon.getPoints()) {
+            for (int i = 0; i < 2 && (i < 1 || splitProportion != 0.5); i++) {
+                double localSplitProportion = Math.abs(i - splitProportion);
+                Point2D oppositePoint = searchPoint(polygon, splitVertex, vInD, (int) Math.round(vInD.size() * localSplitProportion), minPop * 0.05 / vInD.size());
+                if (oppositePoint != null) {
+                    List<Point2D> otherPoints = polygon.getPoints().stream().filter((p) -> !p.equals(splitVertex)).collect(Collectors.toList());
+                    Polygon2D poly1 = createPolygonFromPoints(Arrays.asList(splitVertex, otherPoints.get(0), oppositePoint));
+                    Polygon2D poly2 = createPolygonFromPoints(Arrays.asList(splitVertex, oppositePoint, otherPoints.get(1)));
+                    int splitWV = getWastedVotes(poly1, repPerDistrict, favoredParty, voters) + 
+                            getWastedVotes(poly2, repPerDistrict, favoredParty, voters);
+                    if (splitWV < wastedVotes) {
+                        selPoly1 = poly1;
+                        selPoly2 = poly2;
+                        wastedVotes = splitWV;
+                    }
+                }
+            }
+        }
+        return Arrays.asList(selPoly1, selPoly2);
+    }
+    
+    protected int getWastedVotes(Polygon2D polygon, int repPerDistrict, int favoredParty, List<Voter> voters) {
+        List<Voter> vInP = getVotersInPolygon(voters, polygon);
+        if (vInP.isEmpty()) return 0;
+        int nParties = vInP.get(0).getPreference().size();
+        List<Double> vPPP = countVotesPercentagePerParty(voters);
+        final double fP = vPPP.get(favoredParty);
+        
+        if (nParties == 2) {
+            if (repPerDistrict == 1) {
+                if (fP > 50.0) return (int)((fP - 50.0) * vInP.size());
+                else return (int)(fP * vInP.size());
+            } else if (repPerDistrict == 2) {
+                if (fP > 2/3) return (int)((fP - 2/3) * vInP.size());
+                else if (fP > 50.0) return (int)((fP - 50.0) * vInP.size());
+                else if (fP > 1/3) return (int)((fP - 1/3) * vInP.size());
+                else return (int)(fP * vInP.size());
+            }
+        } else {
+            //3-party
+            final double oP1 = vPPP.get((favoredParty + 1) % nParties);
+            final double oP2 = vPPP.get((favoredParty + 2) % nParties);
+            if (repPerDistrict == 1) {
+                if (fP > Math.max(oP1, oP2)) return (int)((fP - Math.max(oP1, oP2)) * vInP.size());
+                else return (int)(fP * vInP.size());
+            } else if (repPerDistrict == 3) {
+                if (fP > 3/4) return (int)((fP - 3/4) * vInP.size());
+                else if (fP > 2/3 && Math.max(oP1, oP2) < 2/3 - 1/2) return (int)((fP - 2/3 - 1/2) * vInP.size());
+                else if (fP > 50.0) return (int)((fP - 50.0) * vInP.size());
+                //else if (fP > Math.max(oP1, oP2)) return (int)((fP - Math.max(oP1, oP2)) * vInP.size());
+                else if (fP > 1/4) return (int)((fP - 1/4) * vInP.size());
+                else return (int)(fP * vInP.size());
+            }
+        }
+        return 0;
+    }
+    
+    protected List<Double> countVotesPercentagePerParty(List<Voter> voters) {
+        if (voters.isEmpty()) return null;
+        int nParties = voters.get(0).getPreference().size();
+        List<Double> votes = new ArrayList<>();
+        for (int i = 0; i < nParties; i++) {
+            votes.add(0.0);
+        }
+        for (Voter v : voters) {
+            double max = Double.MIN_VALUE;
+            int idx = -1;
+            final List<Double> preferences = v.getPreference();
+            for (int i = 0; i < nParties; i++) {
+                if (preferences.get(i) > max) {
+                    max = preferences.get(i);
+                    idx = i;
+                }
+            }
+            votes.set(idx, votes.get(idx) + 1);
+        }
+        for (int i = 0; i < nParties; i++) {
+            votes.set(i, votes.get(i) / voters.size());
+        }
+        return votes;
     }
     
     protected Point2D searchPoint(Polygon2D polygon, Point2D point, List<Voter> voters, int targetSplit, double tolerance) {
