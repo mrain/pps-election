@@ -71,7 +71,7 @@ def _find_level_points(voters, population_per_triangle):
     curr_voter_num = 0
     points_by_level = [[(500, 500 * math.sqrt(3))]]
     for level in range(2, level_num + 1):
-        curr_level_population = population_per_triangle * 2 * (level - 2) + 1
+        curr_level_population = population_per_triangle * (2 * (level - 2) + 1)
         curr_level = find_level(curr_voter_num, curr_level_population, level)
         curr_voter_num += curr_level_population
         points_by_level.append(curr_level)
@@ -106,7 +106,7 @@ def adaptive_partition(voters: List[Voter], population_per_triangle=None) -> Lis
     if not population_per_triangle:
         population_per_triangle = len(voters) // (81 * 7)
     points_by_level = _find_level_points(voters, population_per_triangle)
-    points_by_level = _horizontal_adjustment(voters, points_by_level)  # comment out this to do naive
+    # points_by_level = _horizontal_adjustment(voters, points_by_level)  # comment out this to do naive
 
     result = []
     for level in range(len(points_by_level) - 1):
@@ -168,7 +168,7 @@ def combined_partition(voters: List[Voter], population_per_triangle=None,
     if not population_per_triangle:
         population_per_triangle = len(voters) // (81 * 7)
     result = []
-    polygons = adaptive_partition(voters, population_per_triangle=1.8 * population_per_triangle)
+    polygons = adaptive_partition(voters, population_per_triangle=population_per_triangle)
     print('Naive done', flush=True)
     for i, polygon in enumerate(polygons):
         result += recursive_partition(polygon, voters, threshold=population_per_triangle,
