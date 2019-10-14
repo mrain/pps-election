@@ -206,11 +206,26 @@ def is_valid_draw(new_districts, voters):
                 last_districts = last_districts[1:]
         district_voters[district_idx] += 1
         if district_voters[district_idx] > upper:
-            return False, None
+            return False, district_idx, True
     for idx in range(len(new_districts)):
         if district_voters[idx] < lower or district_voters[idx] > upper:
-            return False, voters_by_district
-    return True, voters_by_district
+            too_big = district_voters[idx] > upper
+            return False, voters_by_district, too_big
+    return True, voters_by_district, False
+
+
+def find_closest(centroids, idx, n=2):
+    distances = []
+    for cidx, centroid in enumerate(centroids):
+        if cidx == idx:
+            distance = 999999999
+        else:
+            distance = np.sqrt(np.power(centroid[0] - centroids[idx][0], 2) +
+                               np.power(centroid[1] - centroids[idx][1], 2))
+
+        distances.append(distance)
+
+    return np.argsort(np.array(distances))[-n:]
 
 
 def sample_new_district_centers(centroids, districts, voters):
@@ -219,9 +234,32 @@ def sample_new_district_centers(centroids, districts, voters):
         new_pt = sample_new_point(centroid[0], centroid[1], np.sqrt(district.area))
         new_centroids[idx, :] = new_pt
     new_districts = draw_districts(new_centroids)
-    is_valid, voters_by_district = is_valid_draw(new_districts, voters)
-    if not is_valid:
-        return sample_new_district_centers(centroids, districts, voters)
+    is_valid, voters_by_district, is_too_big = is_valid_draw(new_districts, voters)
+    while not is_valid:
+        invalid_idx = voters_by_district
+        # find adjacent centroid and move it closer
+        closest_centroid_idxs = find_closest(new_centroids, invalid_idx, n=2)
+        move_perc = 0.2
+        start_coords = new_centroids[invalid_idx]
+        if is_too_big:
+            for closest_centroid_idx in closest_centroid_idxs:
+                # move 20% closer
+                end_coords = new_centroids[closest_centroid_idx]
+                end_coords[0] = start_coords[0] * move_perc + end_coords[0] * (1.0 - move_perc)
+                end_coords[1] = start_coords[1] * move_perc + end_coords[1] * (1.0 - move_perc)
+                new_centroids[closest_centroid_idx] = end_coords
+        else:
+            for closest_centroid_idx in closest_centroid_idxs:
+                # move 20% closer
+                end_coords = new_centroids[closest_centroid_idx]
+                # move 20% further away
+                slope = (end_coords[1] - start_coords[1]) / float(end_coords[0] - start_coords[0])
+                difference_x = end_coords[0] - start_coords[0]
+                delta_x = move_perc * difference_x if end_coords[0] > start_coords[0] else - move_perc * difference_x
+                delta_y = delta_x * slope
+                new_centroids[closest_centroid_idx] = [end_coords[0] + delta_x, end_coords[1] + delta_y]
+        new_districts = draw_districts(new_centroids)
+        is_valid, voters_by_district, is_too_big = is_valid_draw(new_districts, voters)
     return new_centroids, new_districts, voters_by_district
 
 
