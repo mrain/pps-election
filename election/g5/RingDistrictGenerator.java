@@ -262,7 +262,7 @@ public class RingDistrictGenerator implements DistrictGenerator {
     // Districting in a ring
     private List<Polygon2D> getDistrictsInRing(List<Voter> voters, Point2D innerVertex, Point2D outerVertex) {
     		List<Polygon2D> results = new ArrayList<Polygon2D>();
-    		double step = 2;
+    		double step = 0.2;
     		double dist_num = 20;
     		Polygon2D outerTri = getTriByVertex(outerVertex);
     		Polygon2D innerTri = getTriByVertex(innerVertex);
@@ -286,20 +286,29 @@ public class RingDistrictGenerator implements DistrictGenerator {
 	    					if(p == null) {
 	    						p = findDistAtTwoCorners(currIn, currOut, innerTri.getPoints().get(1), innerTri.getPoints().get(2), innerTri.getPoints().get(0),
 	    						outerTri.getPoints().get(1), outerTri.getPoints().get(2), outerTri.getPoints().get(0), step, lenRate, voters);
+	    						 i++;
 	    					}
+	    					System.out.println(Run.countInclusion(voters, p));
+	    	    				results.add(p);
+	    					currIn = p.getPoints().get(p.getPoints().size()-1);
+		    	    			currOut = p.getPoints().get(p.getPoints().size()-2);
+		    	    			System.out.println("Polygon num: " + Integer.toString(results.size()));
+	    					break;
 	    				}
-	    				else if(i == 1)
+	    				else if(i == 1) {
 	    					p = findDistAtCorner(currIn, currOut, innerTri.getPoints().get(2), innerTri.getPoints().get(0),
 		    						outerTri.getPoints().get(2), outerTri.getPoints().get(0), step, lenRate, voters, false);
-	    				results.add(p);
-			    		currIn = p.getPoints().get(5);
-			    		currOut = p.getPoints().get(4);
-			    		break;
+	    					System.out.println(Run.countInclusion(voters, p));
+		    				results.add(p);
+				    		currIn = p.getPoints().get(5);
+				    		currOut = p.getPoints().get(4);
+				    		System.out.println("Polygon num: " + Integer.toString(results.size()));
+				    		break;
+	    				}
 	    			}
-	    			else {
-	    				currIn = p.getPoints().get(3);
-		    			currOut = p.getPoints().get(2);
-	    			}
+    				currIn = p.getPoints().get(p.getPoints().size()-1);
+	    			currOut = p.getPoints().get(p.getPoints().size()-2);
+	    			System.out.println(Run.countInclusion(voters, p));
 	    			results.add(p);
 	    			System.out.println("Polygon num: " + Integer.toString(results.size()));
 	    		}
@@ -308,8 +317,24 @@ public class RingDistrictGenerator implements DistrictGenerator {
     		Polygon2D p = new Polygon2D();
     		p.append(currIn);
     		p.append(currOut);
-    		p.append(outerTri.getPoints().get(0));
-    		p.append(innerTri.getPoints().get(0));
+    		if(currIn.getX() > 500 && currIn.getY() > innerTri.getPoints().get(1).getY()) {
+    			p.append(outerTri.getPoints().get(1));
+    			p.append(outerTri.getPoints().get(2));
+    			p.append(outerTri.getPoints().get(0));
+    			p.append(innerTri.getPoints().get(0));
+    			p.append(innerTri.getPoints().get(2));
+    			p.append(innerTri.getPoints().get(1));
+    		}
+    		else if(currIn.getY() == innerTri.getPoints().get(1).getY()) {
+    			p.append(outerTri.getPoints().get(2));
+    			p.append(outerTri.getPoints().get(0));
+        		p.append(innerTri.getPoints().get(0));
+        		p.append(innerTri.getPoints().get(2));
+    		}
+    		else {
+    			p.append(outerTri.getPoints().get(0));
+        		p.append(innerTri.getPoints().get(0));
+    		}
     		results.add(p);
     		System.out.println("Polygon num: " + Integer.toString(results.size()));
     		return results;
@@ -338,8 +363,16 @@ public class RingDistrictGenerator implements DistrictGenerator {
 
         // 81 Districts
         if (repPerDistrict == 3) {
-        		List<Point2D> vertices = getConcentricTriangleTips(voters);
-        		System.out.println("Start districting");
+//        		List<Point2D> vertices = getConcentricTriangleTips(voters);
+        		List<Point2D> vertices = new ArrayList<Point2D>();
+        		vertices.add(new Point2D.Double(500, 437.67513459481285));
+        		vertices.add(new Point2D.Double(500, 627.6751345948128));
+        		vertices.add(new Point2D.Double(500, 705.1751345948128));
+        		vertices.add(new Point2D.Double(500, 803.1751345948128));
+        		vertices.add(new Point2D.Double(500, 866.0254037844386));
+//        		for(int i = 0; i < vertices.size(); i++)
+//        			result.add(getTriByVertex(vertices.get(i)));
+//        		return result;
 			return getAllDistrict(voters, vertices);
         }
         return null;
