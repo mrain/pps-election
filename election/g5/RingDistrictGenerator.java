@@ -69,7 +69,7 @@ public class RingDistrictGenerator implements DistrictGenerator {
             innerTriangle.append(topX, topY);
             innerTriangle.append(leftX, botY);
             innerTriangle.append(rightX, botY);
-            System.out.println(topY);
+            // System.out.println(topY);
 
             innerVoterCount = Run.countInclusion(voters, innerTriangle);
         } while (needsMoreVoters(innerVoterCount));
@@ -149,7 +149,7 @@ public class RingDistrictGenerator implements DistrictGenerator {
     }
 
     //Fix one edge and find the opposite edge to ensure population within 0.9-1.1 average
-    private Polygon2D findDist(Point2D currIn, Point2D currOut, Point2D innerEndpoint1, Point2D innerEndpoint2, 
+    private Polygon2D findDist(Point2D currIn, Point2D currOut, Point2D innerEndpoint1, Point2D innerEndpoint2,
     		Point2D outerEndpoint1, Point2D outerEndPoint2, double step, double lenRate, List<Voter> voters, boolean reverse) {
     		if(!reverse) {
 	    		for(double innerX = currIn.getX(); innerX <= innerEndpoint2.getX(); innerX += step) {
@@ -189,7 +189,7 @@ public class RingDistrictGenerator implements DistrictGenerator {
     }
 
     // Find a district at the corner of the ring
-    private Polygon2D findDistAtCorner(Point2D currIn, Point2D currOut, Point2D innerEndpoint1, Point2D innerEndpoint2, 
+    private Polygon2D findDistAtCorner(Point2D currIn, Point2D currOut, Point2D innerEndpoint1, Point2D innerEndpoint2,
     		Point2D outerEndpoint1, Point2D outerEndPoint2, double step, double lenRate, List<Voter> voters, boolean reverse) {
     		// Increasing x
     		if(!reverse) {
@@ -233,9 +233,9 @@ public class RingDistrictGenerator implements DistrictGenerator {
     		}
 		return null;
 	}
-    
+
     // When the region do not have no enough population, use three edges
-    private Polygon2D findDistAtTwoCorners(Point2D currIn, Point2D currOut, Point2D innerEndpoint1, Point2D innerEndpoint2, Point2D innerEndpoint3, 
+    private Polygon2D findDistAtTwoCorners(Point2D currIn, Point2D currOut, Point2D innerEndpoint1, Point2D innerEndpoint2, Point2D innerEndpoint3,
     		Point2D outerEndpoint1, Point2D outerEndpoint2, Point2D outerEndPoint3, double step, double lenRate, List<Voter> voters) {
 			for(double innerX = innerEndpoint2.getX(); innerX <= innerEndpoint3.getX(); innerX += step) {
 				double innerY = findYByX(innerX, innerEndpoint2, innerEndpoint3);
@@ -339,7 +339,7 @@ public class RingDistrictGenerator implements DistrictGenerator {
     		System.out.println("Polygon num: " + Integer.toString(results.size()));
     		return results;
     }
-    
+
     // Districting in all rings
     public List<Polygon2D> getAllDistrict(List<Voter> voters, List<Point2D> vertices) {
     		List<Polygon2D> results = new ArrayList<Polygon2D>();
@@ -352,30 +352,89 @@ public class RingDistrictGenerator implements DistrictGenerator {
     		return results;
     }
 
+	private Double compactness(Polygon2D district) {
+			double area = district.area();
+			double perimeter = 0;
+			List<Point2D> points = district.getPoints();
+			for (int i = 0; i < points.size(); ++i) {
+					perimeter += district.ptDist(points.get(i), points.get((i+1)%points.size()));
+			}
+			// System.out.println(perimeter/area);
+			return perimeter/area;
+	}
+
+	private Double compactGerry(List<Voter> voters) {
+			List<Point2D> vertices = getConcentricTriangleTips(voters);
+			List<Polygon2D> districts = getAllDistrict(voters, vertices);
+			List<Double> comp = new ArrayList<Double>();
+			double total = 0;
+			for (int i=0; i < districts.size(); ++i) {
+					comp.set(i, compactness(districts.get(i)));
+					total += comp.get(i);
+			}
+			double mean = total/comp.size();
+			double deviation = 0;
+			for (Double c : comp) {
+					deviation += Math.pow(c-mean, 2);
+			}
+			return Math.sqrt(deviation);
+	}
+
+	private Double efficiencyGap(List<Voter> voters, Polygon2D district, int repPerDistrict) {
+			List<Double> result = new ArrayList<Double>();
+			for (Voter voter : voters) {
+					if (district.contains(voter.getLocation())) {
+							List<Double> preference = voter.getPreference();
+							for (int i = 0; i < preference.size(); ++i) {
+									if (result.size() < preference.size()) {
+											result.add(preference.get(i));
+									} else {
+											result.set(i, result.get(i)+preference.get(i));
+									}
+							}
+					}
+			}
+			double max = -1.0;
+			int maxIdx = -1;
+			for (int i = 0; i < result.size(); ++i) {
+					while (result.get(i) >= 1/repPerDistrict) {
+							result.set(i, result.get(i)-1/repPerDistrict);
+					}
+					if (max < result.get(i)) {
+							max = result.get(i);
+							maxIdx = i;
+					}
+			}
+			result.set(maxIdx, 0.0);
+			double sum = 0.0;
+			for (int i = 0; i < result.size(); ++i) {
+					sum += result.get(i);
+			}
+			return sum;
+	}
+
 	@Override
 	public List<Polygon2D> getDistricts(List<Voter> voters, int repPerDistrict, long seed) {
-		numVoters = voters.size();
-        numParties = voters.get(0).getPreference().size();
-        List<Polygon2D> result = new ArrayList<Polygon2D>();
-        numDistricts = 243 / repPerDistrict;
-        random = new Random(seed);
-        avgVotersPerDistrict = 333333 / numDistricts;
+			numVoters = voters.size();
+      numParties = voters.get(0).getPreference().size();
+      List<Polygon2D> result = new ArrayList<Polygon2D>();
+      numDistricts = 243 / repPerDistrict;
+      random = new Random(seed);
+      avgVotersPerDistrict = 333333 / numDistricts;
 
-        // 81 Districts
-        if (repPerDistrict == 3) {
-//        		List<Point2D> vertices = getConcentricTriangleTips(voters);
-        		List<Point2D> vertices = new ArrayList<Point2D>();
-        		vertices.add(new Point2D.Double(500, 437.67513459481285));
-        		vertices.add(new Point2D.Double(500, 627.6751345948128));
-        		vertices.add(new Point2D.Double(500, 705.1751345948128));
-        		vertices.add(new Point2D.Double(500, 803.1751345948128));
-        		vertices.add(new Point2D.Double(500, 866.0254037844386));
-//        		for(int i = 0; i < vertices.size(); i++)
-//        			result.add(getTriByVertex(vertices.get(i)));
-//        		return result;
-			return getAllDistrict(voters, vertices);
-        }
-        return null;
+			// System.out.println(compactGerry(voters));
+
+      // 81 Districts
+      if (repPerDistrict == 3) {
+      		List<Point2D> vertices = getConcentricTriangleTips(voters);
+					List<Polygon2D> districts = getAllDistrict(voters, vertices);
+					// for (Polygon2D district : districts) {
+					// 		System.out.println(efficiencyGap(voters, district, repPerDistrict));
+					// }
+      		System.out.println("Start districting");
+					return getAllDistrict(voters, vertices);
+      }
+      return null;
 	}
 
 }
