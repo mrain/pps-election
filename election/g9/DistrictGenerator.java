@@ -8,8 +8,6 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     private double scale = 1000.0;
     private Random random;
     private int numVoters, numParties, numDistricts;
-    private double iLength = 1000 - 2*50 * Math.sqrt(3);
-    private double iHeight = 500. * Math.sqrt(3) - 100.;
 
     @Override
     public List<Polygon2D> getDistricts(List<Voter> voters, int repPerDistrict, long seed) {
@@ -17,231 +15,570 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         numParties = voters.get(0).getPreference().size();
         List<Polygon2D> result = new ArrayList<Polygon2D>();
         numDistricts = 243 / repPerDistrict;
+        double height = scale / 2.0 * Math.sqrt(3);
+        double hstep = scale / 9.0;
 
-        result.addAll(getInside(repPerDistrict));
-        //System.out.println(result.size());
-        result.addAll(getOutside(repPerDistrict));
-        //System.out.println(result.size());
+        int r;
+        if(numDistricts == 81) r = 4;
+        else r = 5;
+
+        Polygon2D init = new Polygon2D();
+        init.append(0.,0.);
+        init.append(1000., 0.);
+        init.append(500., 500. * Math.sqrt(3));
+        District initDistrict = new District(init, voters, true);
+
+        List<District> disList = new ArrayList<District>();
+        disList.add(initDistrict);
+
+        for(int i = 0; i < r; i++) {
+            List<District> temp = new ArrayList<District>();
+            for(District d : disList) {
+                //temp.addAll(gerrySplit(d, d.voters.size()/3, repPerDistrict));
+                temp.addAll(splitTriangleDistrict(d, d.voters.size()/3));
+            }
+            System.out.println(temp.size());
+            disList = temp;
+        }
+
+        for(District d : disList) {
+            //System.out.println(d.polygon);
+            result.add(d.polygon);
+        }
+
         return result;
     }
 
-    public List<Polygon2D> getInside(int repPerDistrict) {
-        double height = iHeight;
-        double hstep = iLength / 6.0;
-        List<Polygon2D> result = new ArrayList<Polygon2D>();
-        if (repPerDistrict == 3) {
-            // 36 Districts;
-            for (int i = 0; i < 6; ++ i) {
-                double top = (height - 50.) * (6 - i) / 6.0;
-                double btm = top - (height - 50.) / 6.0;
-                top += 50.;
-                btm += 50.;
-                double left = iLength / 2 - hstep / 2 * (i + 1) + 50. * Math.sqrt(3);
-                for (int j = 0; j <= i; ++ j) {
-                    Polygon2D polygon = new Polygon2D();
-                    polygon.append(left + hstep * j, btm);
-                    polygon.append(left + hstep * j + hstep, btm);
-                    polygon.append(left + hstep * j + hstep / 2, top);
-                    result.add(polygon);
-                    //System.out.println(polygon);
-                }
-                for (int j = 0; j < i; ++ j) {
-                    Polygon2D polygon = new Polygon2D();
-                    polygon.append(left + hstep * j + hstep / 2, top);
-                    polygon.append(left + hstep * j + hstep, btm);
-                    polygon.append(left + hstep * j + hstep * 3 / 2, top);
-                    result.add(polygon);
-                    //System.out.println(polygon);
-                }
-            }
+    public List<District> gerrySplit(District startingDistrict, int repPerDistrict, int repNum){
+        if (startingDistrict.polygon.size() != 3){
+            throw new IllegalArgumentException("Not a triangle, can't split a " + startingDistrict.polygon.size() + " sided polygon. ");
         } else {
-            // 108 districts
-            Point2D top = new Point2D.Double(500., height);
-            double step = iLength / (36 * 3);
-            for (int i = 0; i < 36 * 3; ++ i) {
-                Polygon2D polygon = new Polygon2D();
-                polygon.append(new Point2D.Double(step * i, 0.));
-                polygon.append(new Point2D.Double(step * (i + 1), 0.));
-                polygon.append(top);
-                result.add(polygon);
+            //System.out.println("Getting here");
+            //pick a point on a line between the vertices of a triangle, then try to split into 2 districts. 
+            Polygon2D polygon = startingDistrict.polygon;
+            Point2D point1 = polygon.getPoints().get(0);
+            Point2D point2 = polygon.getPoints().get(1);
+
+            List<District>[] districts = new ArrayList[3];
+            for(int i = 0; i < 3; i++) districts[i] = new ArrayList<District>();
+            double slope = (point1.getY() - point2.getY()) / (point1.getX() - point2.getX());
+            double b = point2.getY() - (slope * point2.getX());
+            boolean valid = false;
+            double totalDistrictSize = startingDistrict.voters.size();
+            double topThreshold = totalDistrictSize/3 + (totalDistrictSize/3 * .01);
+            double bottomThreshold = totalDistrictSize/3 - (totalDistrictSize/3 * .01);
+            District district1 = new District();
+            District district2 = new District();
+            District district3 = new District();
+            Point2D mid1 = new Point2D.Double(0,0);
+            
+            double diff = 1.;
+            double i = 1.;
+            double dec = 1.;
+            boolean check = false;
+            while (!valid){
+                if (point1.getX() > point2.getX()){
+                    i = diff * -1;
+                } else {
+                    i = diff;
+                }
+                Point2D trialPoint = new Point2D.Double(point1.getX() + i, (slope * (point1.getX() + i)) + b);
+                Polygon2D polygon1 = new Polygon2D();
+                Polygon2D polygon2 = new Polygon2D();
+                polygon1.append(point1);
+                polygon1.append(trialPoint);
+                polygon1.append(polygon.getPoints().get(2));
+                district1 = new District(polygon1, startingDistrict.voters, false);
+
+                polygon2.append(point2);
+                polygon2.append(trialPoint);
+                polygon2.append(polygon.getPoints().get(2));
+                district2 = new District(polygon2, startingDistrict.voters, false);
+                if (district1.voters.size() >= bottomThreshold && district1.voters.size() < topThreshold){
+                    valid = true;
+                    mid1 = trialPoint;
+                } else if (district1.voters.size() > topThreshold){
+                    check = true;
+                    diff-=dec;
+                    //throw new IllegalArgumentException("District contains too many voters, can't split");
+                } else {
+                    if(check) {
+                        check = false;
+                        diff += dec;
+                        dec /= 2.;
+                    }
+                    else diff+=3;
+                }
+            }
+            valid = false;
+            diff = 1.;
+            dec = 1.;
+            check = false;
+            while (!valid){
+                if (mid1.getX() > point2.getX()){
+                    i = diff * -1;
+                } else {
+                    i = diff;
+                }
+                Point2D trialPoint = new Point2D.Double(mid1.getX() + i, (slope * (mid1.getX() + i)) + b);
+
+                Polygon2D polygon2 = new Polygon2D();
+                polygon2.append(mid1);
+                polygon2.append(trialPoint);
+                polygon2.append(polygon.getPoints().get(2));
+                district2 = new District(polygon2, startingDistrict.voters, false);
+
+                Polygon2D polygon3 = new Polygon2D();
+                polygon3.append(trialPoint);
+                polygon3.append(point2);
+                polygon3.append(polygon.getPoints().get(2));
+                district3 = new District(polygon3, startingDistrict.voters, false);
+                if (district2.voters.size() >= bottomThreshold && district2.voters.size() < topThreshold){
+                    valid = true;
+                } else if (district2.voters.size() > topThreshold){
+                    //System.out.println("Something2");
+                    check = true;
+                    diff-= dec;
+                    //throw new IllegalArgumentException("District contains too many voters, can't split");
+                } else {
+                    if(check) {
+                        check = false;
+                        diff += dec;
+                        dec /= 2.;
+                    }
+                    else diff+=3;
+                }
+            }
+
+            districts[0].add(district1);
+            districts[0].add(district2);
+            districts[0].add(district3);
+
+            //System.out.println("Getting here1");
+
+            point1 = polygon.getPoints().get(1);
+            point2 = polygon.getPoints().get(2);
+
+            slope = (point1.getY() - point2.getY()) / (point1.getX() - point2.getX());
+            b = point2.getY() - (slope * point2.getX());
+            valid = false;
+            district1 = new District();
+            district2 = new District();
+            district3 = new District();
+            mid1 = new Point2D.Double(0,0);
+            
+            diff = 1.;
+            i = 1.;
+            dec = 1.;
+            check = false;
+            while (!valid){
+                if (point1.getX() > point2.getX()){
+                    i = diff * -1;
+                } else {
+                    i = diff;
+                }
+                Point2D trialPoint = new Point2D.Double(point1.getX() + i, (slope * (point1.getX() + i)) + b);
+                Polygon2D polygon1 = new Polygon2D();
+                Polygon2D polygon2 = new Polygon2D();
+                polygon1.append(point1);
+                polygon1.append(trialPoint);
+                polygon1.append(polygon.getPoints().get(0));
+                district1 = new District(polygon1, startingDistrict.voters, false);
+
+                polygon2.append(point2);
+                polygon2.append(trialPoint);
+                polygon2.append(polygon.getPoints().get(0));
+                district2 = new District(polygon2, startingDistrict.voters, false);
+                if (district1.voters.size() >= bottomThreshold && district1.voters.size() < topThreshold){
+                    valid = true;
+                    mid1 = trialPoint;
+                } else if (district1.voters.size() > topThreshold){
+                    //System.out.println("Something");
+                    check = true;
+                    diff-=dec;
+                    //throw new IllegalArgumentException("District contains too many voters, can't split");
+                } else {
+                    if(check) {
+                        check = false;
+                        diff += dec;
+                        dec /= 2.;
+                    }
+                    else diff+=3;
+                }
+            }
+            valid = false;
+            diff = 1.;
+            dec = 1.;
+            check = false;
+            while (!valid){
+                if (mid1.getX() > point2.getX()){
+                    i = diff * -1;
+                } else {
+                    i = diff;
+                }
+                Point2D trialPoint = new Point2D.Double(mid1.getX() + i, (slope * (mid1.getX() + i)) + b);
+
+                Polygon2D polygon2 = new Polygon2D();
+                polygon2.append(mid1);
+                polygon2.append(trialPoint);
+                polygon2.append(polygon.getPoints().get(0));
+                district2 = new District(polygon2, startingDistrict.voters, false);
+
+                Polygon2D polygon3 = new Polygon2D();
+                polygon3.append(trialPoint);
+                polygon3.append(point2);
+                polygon3.append(polygon.getPoints().get(0));
+                district3 = new District(polygon3, startingDistrict.voters, false);
+                if (district2.voters.size() >= bottomThreshold && district2.voters.size() < topThreshold){
+                    valid = true;
+                } else if (district2.voters.size() > topThreshold){
+                    //System.out.println("Something2");
+                    check = true;
+                    diff-= dec;
+                    //throw new IllegalArgumentException("District contains too many voters, can't split");
+                } else {
+                    if(check) {
+                        check = false;
+                        diff += dec;
+                        dec /= 2.;
+                    }
+                    else diff+=3;
+                }
+            }
+
+            districts[1].add(district1);
+            districts[1].add(district2);
+            districts[1].add(district3);
+
+            //System.out.println("Getting here2");
+
+            point1 = polygon.getPoints().get(0);
+            point2 = polygon.getPoints().get(2);
+
+            slope = (point1.getY() - point2.getY()) / (point1.getX() - point2.getX());
+            b = point2.getY() - (slope * point2.getX());
+            valid = false;
+            district1 = new District();
+            district2 = new District();
+            district3 = new District();
+            mid1 = new Point2D.Double(0,0);
+            
+            diff = 1.;
+            i = 1.;
+            dec = 1.;
+            check = false;
+            while (!valid){
+                if (point1.getX() > point2.getX()){
+                    i = diff * -1;
+                } else {
+                    i = diff;
+                }
+                Point2D trialPoint = new Point2D.Double(point1.getX() + i, (slope * (point1.getX() + i)) + b);
+                Polygon2D polygon1 = new Polygon2D();
+                Polygon2D polygon2 = new Polygon2D();
+                polygon1.append(point1);
+                polygon1.append(trialPoint);
+                polygon1.append(polygon.getPoints().get(1));
+                district1 = new District(polygon1, startingDistrict.voters, false);
+
+                polygon2.append(point2);
+                polygon2.append(trialPoint);
+                polygon2.append(polygon.getPoints().get(1));
+                district2 = new District(polygon2, startingDistrict.voters, false);
+                if (district1.voters.size() >= bottomThreshold && district1.voters.size() < topThreshold){
+                    valid = true;
+                    mid1 = trialPoint;
+                } else if (district1.voters.size() > topThreshold){
+                    //System.out.println("Something");
+                    check = true;
+                    diff-=dec;
+                    //throw new IllegalArgumentException("District contains too many voters, can't split");
+                } else {
+                    if(check) {
+                        check = false;
+                        diff += dec;
+                        dec /= 2.;
+                    }
+                    else diff+=3;
+                }
+            }
+            valid = false;
+            diff = 1.;
+            dec = 1.;
+            check = false;
+            while (!valid){
+                if (mid1.getX() > point2.getX()){
+                    i = diff * -1;
+                } else {
+                    i = diff;
+                }
+                Point2D trialPoint = new Point2D.Double(mid1.getX() + i, (slope * (mid1.getX() + i)) + b);
+
+                Polygon2D polygon2 = new Polygon2D();
+                polygon2.append(mid1);
+                polygon2.append(trialPoint);
+                polygon2.append(polygon.getPoints().get(1));
+                district2 = new District(polygon2, startingDistrict.voters, false);
+
+                Polygon2D polygon3 = new Polygon2D();
+                polygon3.append(trialPoint);
+                polygon3.append(point2);
+                polygon3.append(polygon.getPoints().get(1));
+                district3 = new District(polygon3, startingDistrict.voters, false);
+                if (district2.voters.size() >= bottomThreshold && district2.voters.size() < topThreshold){
+                    valid = true;
+                } else if (district2.voters.size() > topThreshold){
+                    //System.out.println("Something2");
+                    check = true;
+                    diff-= dec;
+                    //throw new IllegalArgumentException("District contains too many voters, can't split");
+                } else {
+                    if(check) {
+                        check = false;
+                        diff += dec;
+                        dec /= 2.;
+                    }
+                    else diff+=3;
+                }
+            }
+
+            districts[2].add(district1);
+            districts[2].add(district2);
+            districts[2].add(district3);
+
+            double[][] per = new double[3][3];
+
+            per[0] = getPercentages(districts[0]);
+            per[1] = getPercentages(districts[1]);
+            per[2] = getPercentages(districts[2]);
+
+            int[] rep = new int[3];
+            double[] waste = new double[3];
+            getWaste(rep, waste, per, repNum);
+
+            //System.out.println(per[0][0] + ", " + per[0][1] + ", " + per[0][2]);
+            //System.out.println(per[1][0] + ", " + per[1][1] + ", " + per[1][2]);
+            //System.out.println(per[2][0] + ", " + per[2][1] + ", " + per[2][2]);
+
+            if(rep[0] == rep[1] && rep[0] == rep[2]) {
+                return districts[getMinIndex(waste)];
+            }
+
+            else if(rep[0] == rep[1] && rep[0] > rep[2]) {
+                if(waste[0] > waste[1]) return districts[1];
+                else return districts[0];
+            }
+
+            else if(rep[1] == rep[2] && rep[1] > rep[0]) {
+                if(waste[1] > waste[2]) return districts[2];
+                else return districts[1];
+            }
+
+            else if(rep[0] == rep[2] && rep[2] > rep[1]) {
+                if(waste[0] > waste[2]) return districts[2];
+                else return districts[0];
+            }
+
+            else {
+                return districts[getMaxIndex(rep)];
             }
         }
-        //System.out.println(result.size());
-        return result;
     }
-    
-    public List<Polygon2D> getOutside(int repPerDistrict) {
-    	double area = 2500./15. * (20.-Math.sqrt(3));
-        double x = 50. * Math.sqrt(3);
-        double h = 50.;
-        double z = ((2. * area / h) - x) / 2;
-        double w = (1000.-(2.*(x+z)))/13.;
-        
 
-        //System.out.println("x: "+ x + " y: " + y + " z: " + z);
+    public int getMinIndex(double[] waste) {
+        double min = 100000000.;
+        int index = 1;
 
-        List<Polygon2D> result = new ArrayList<Polygon2D>();
-
-        if(repPerDistrict == 3) {
-            Polygon2D trap = new Polygon2D();
-
-            trap.append(0,0);
-            trap.append(x+z,0);
-            trap.append(x+z,h);
-            trap.append(x,h);
-            result.add(trap);
-
-            System.out.println(trap);
-
-            for(int i = 0; i < 13; i++) {
-                Polygon2D temp = new Polygon2D();
-                temp.append(x+z+w*(i),0);
-                temp.append(x+z+w*(i),h);
-                temp.append(x+z+w*(i+1),h);
-                temp.append(x+z+w*(i+1),0);
-                result.add(temp);
-                System.out.println(temp);
+        for(int i = 0; i < 3; i++) {
+            if(waste[i] < min) {
+                min = waste[i];
+                index = i;
             }
-
-            trap = new Polygon2D();
-            trap.append(x+z+w*(13), 0);
-            trap.append(x+z+w*(13), h);
-            trap.append(x+z+w*(13)+z, h);
-            trap.append(x+z+w*(13)+z+x, 0);
-
-            result.add(trap);
-
-            System.out.println(trap);
-
-            //System.out.println("DONE!");
-
-            //Adding in the left side
-            double a = 60. * Math.PI/180.;
-            double b = -30. * Math.PI/180.;
-            double zx = z * Math.cos(a);
-            double zy = z * Math.sin(a);
-            double xx = x * Math.cos(a);
-            double xy = x * Math.sin(a);
-            double wx = w * Math.cos(a);
-            double wy = w * Math.sin(a);
-
-            //System.out.println("xx: " + xx + " x: " + x);
-            Polygon2D trap1 = new Polygon2D();
-            trap = new Polygon2D();
-
-            double tempX = 0;
-            trap.append(tempX, 0);
-            trap1.append(tempX + 2*(500-tempX), 0);
-            tempX = xx + zx;
-            trap.append(tempX, xy+zy);
-            trap1.append(tempX + 2 * (500-tempX), xy+zy);
-            tempX = xx + zx + h * Math.cos(b);
-            trap.append(tempX, xy + zy + h * Math.sin(b));
-            trap1.append(tempX + 2 * (500-tempX), xy + zy + h * Math.sin(b));
-            tempX = xx + h * Math.cos(b);
-            trap.append(tempX, xy + h * Math.sin(b));
-            trap1.append(tempX + 2 * (500-tempX), xy + h * Math.sin(b));
-            result.add(trap);
-            result.add(trap1);
-
-            System.out.println(trap.size());
-
-            System.out.println(trap);
-            System.out.println(trap1);
-
-            System.out.println("HUH!");
-
-            for(int i = 0; i < 13; i++) {
-                Polygon2D temp = new Polygon2D();
-                Polygon2D temp1 = new Polygon2D();
-                tempX = xx + zx + wx*(i);
-                temp.append(tempX, xy + zy + wy * (i));
-                temp1.append(tempX + 2 * (500-tempX), xy + zy + wy * (i));
-                tempX = xx + zx + wx * (i+1);
-                temp.append(tempX,xy+zy+wy*(i+1));
-                temp1.append(tempX + 2 * (500-tempX), xy+zy+wy*(i+1));
-                tempX = xx+zx+wx*(i+1) + h * Math.cos(b);
-                temp.append(tempX , xy+zy+wy*(i+1)+h*Math.sin(b));
-                temp1.append(tempX + 2 * (500-tempX), xy+zy+wy*(i+1)+h * Math.sin(b));
-                tempX = xx + zx + wx * (i) + h * Math.cos(b);
-                temp.append(tempX, xy+zy+wy*(i) + h * Math.sin(b));
-                temp1.append(tempX + 2 * (500-tempX), xy+zy+wy*(i) + h * Math.sin(b));
-                result.add(temp);
-                result.add(temp1);
-                System.out.println(temp);
-                System.out.println(temp1);
-            }
-
-            //System.out.println("YOOO");
-
-            trap1 = new Polygon2D();
-            trap = new Polygon2D();
-            tempX = xx+zx+wx*(13);
-            trap.append(tempX, xy+zy+wy*13);
-            trap1.append(tempX + 2 * (500-tempX), xy+zy+wy*13);
-            tempX = xx+zx+wx*13 + h * Math.cos(b);
-            trap.append(tempX, xy+zy+wy*(13) + h * Math.sin(b));
-            trap1.append(tempX + 2 * (500-tempX), xy+zy+wy*13 + h * Math.sin(b));
-            tempX = xx+zx+wx*13+zx+h*Math.cos(b);
-            trap.append(tempX, xy+zy+wy*13+zy+h*Math.sin(b));
-            trap1.append(tempX + 2 * (500-tempX), xy+zy+wy*13+zy+h*Math.sin(b));
-            tempX = xx+zx+wx*13+xx+zx;
-            trap.append(tempX, xy+zy+wy*13+xy+zy);
-            trap1.append(tempX + 2 * (500-tempX), xy+zy+wy*13+xy+zy);
-
-            result.add(trap1);
-            result.add(trap);
-            System.out.println(trap);
-            System.out.println(trap1);
-
-            //System.out.println("DONE!");
-
-            //Adding the last side 
-            /*polygon = new Polygon2D();
-            trap = new Polygon2D();
-
-            polygon.append(0 + 2 * (500-0),0);
-            polygon.append(xx+ 2 * (500-xx),xy);
-            polygon.append(xx + y * Math.cos(b) + 2 * (500-(xx + y * Math.cos(b))),xy + y * Math.sin(b));
-            result.add(polygon);
-
-            trap.append(xx + 2 *(500- xx), xy);
-            trap.append(xx + y * Math.cos(b) + 2 * (500 - (xx + y * Math.cos(b))), xy + y * Math.sin(b));
-            trap.append(xx+zx + 2 * (500-(xx+zx)), xy+zy);
-            trap.append(xx+zx + h * Math.cos(b) + 2 * (500-(xx+zx + h * Math.cos(b))), xy+zy + h * Math.sin(b));
-            result.add(trap);
-            System.out.println(polygon);
-            System.out.println(trap);
-
-            //System.out.println("HUH!");
-
-            for(int i = 0; i < 11; i++) {
-                Polygon2D temp = new Polygon2D();
-                temp.append(xx+zx+wx*(i) + 2 *(500-(xx+zx+wx*(i))), xy+zy+wy*(i));
-                temp.append(xx+zx+wx*(i) + h * Math.cos(b) + 2 * (500-((xx+zx+wx*(i)) + h * Math.cos(b))), xy+zy+wy*(i) + h * Math.sin(b));
-                temp.append(xx+zx+wx*(i+1) + 2 * (500 - (xx+zx+wx*(i+1))),xy+zy+wy*(i+1));
-                temp.append(xx+zx+wx*(i+1) + h * Math.cos(b) + 2 * (500- (xx+zx+wx*(i+1) + h * Math.cos(b))), xy+zy+wy*(i+1) + h * Math.sin(b));
-                result.add(temp);
-                System.out.println(temp);
-            }
-
-            polygon = new Polygon2D();
-            trap = new Polygon2D();
-            trap.append(xx+zx+wx*(11) + 2 * (500 - (xx+zx+wx*(11))), xy+zy+wy*(11));
-            trap.append(xx+zx+wx*(11) + h * Math.cos(b) + 2 * (500- (xx+zx+wx*(11) + h * Math.cos(b))), xy+zy+wy*(11) + h * Math.sin(b));
-            trap.append(xx+zx+wx*(11) + zx + 2 * ( 500 - (xx+zx+wx*(11) + zx)), xy+zy+wy*(11) + zy);
-            trap.append(xx+zx+wx*(11) * y * Math.cos(b) + 2 * (500 - (xx+zx+wx*(11) * y * Math.cos(b))), xy+zy+wy*(11) + y * Math.sin(b));
-
-            polygon.append(xx+zx+wx*(11)+zx + 2 * (500 - (xx+zx+wx*(11)+zx)), xy+zy+wy*(11)+zy);
-            polygon.append(xx+zx+wx*(11)+zx + y * Math.cos(b) + 2 * (500 - (xx+zx+wx*(11)+zx + y * Math.cos(b))), xy+zy+wy*(11)+zy + y * Math.sin(b));
-            polygon.append(xx+zx+wx*(11)+zx+xx + 2 * (500 - (xx+zx+wx*(11)+zx+xx)), xy+zy+wy*(11)+zy+xy);
-
-            result.add(polygon);
-            result.add(trap);
-            System.out.println(polygon);
-            System.out.println(trap);*/
         }
-        //System.out.println("DONE!");
-        return result;
+        return index;
+    }
+
+    public int getMaxIndex(int[] rep) {
+        double max = 0;
+        int index = 1;
+
+        for(int i = 0; i < 3; i++) {
+            if(rep[i] > max) {
+                max = rep[i];
+                index = i;
+            }
+        }
+        return index;
+    }
+
+    public void getWaste(int[] rep, double[] waste, double[][] per, int repPerDistrict) {
+        for(int i = 0; i < 3; i++) {
+            for(int j = 0; j < 3; j++) {
+                if(repPerDistrict == 3) {
+                    if(per[i][j] > .75) {
+                        rep[i] += 3;
+                        waste[i] += per[i][j] - .75;
+                    }
+                    else if(per[i][j] > .5) {
+                        rep[i] += 2;
+                        waste[i] += per[i][j] - .5;
+                    }
+                    else if(per[i][j] > .25) {
+                        rep[i] += 1;
+                        waste[i] += per[i][j] - .25;
+                    }
+                    else {
+                        waste[i] += per[i][j];
+                    }
+                }
+                else {
+                    if(per[i][j] > .5) {
+                        rep[i] += 1;
+                        waste[i] += per[i][j] - .5;
+                    }
+                    else {
+                        waste[i] += per[i][j];
+                    }
+                }
+            }
+        }
+    }
+
+    //Gets info for party1
+    public double[] getPercentages(List<District> districts) {
+        int[][] count = new int[3][3];
+        for(int i = 0 ; i < 3; i++) {
+            List<Voter> voters = districts.get(i).voters;
+            for(Voter v: voters) {
+                double max = 0;
+                int index = 0;
+                for(int j = 0; j < 3; j++) {
+                    if(v.getPreference().get(j) > max) {
+                        max = v.getPreference().get(j);
+                        index = j;
+                    }
+                }
+                count[i][index]++;
+            }
+        }
+
+        double[] total = new double[3];
+        for(int i = 0; i < 3; i++) {
+            total[i] = Double.valueOf(count[i][0]) / Double.valueOf(districts.get(i).voters.size());
+        }
+
+        return total;
+    }
+
+    public List<District> splitTriangleDistrict(District startingDistrict, int repPerDistrict){
+        if (startingDistrict.polygon.size() != 3){
+            throw new IllegalArgumentException("Not a triangle, can't split a " + startingDistrict.polygon.size() + " sided polygon. ");
+        } else {
+            List<Integer> ran = new ArrayList<>();
+            ran.add(0);
+            ran.add(1);
+            ran.add(2);
+            Collections.shuffle(ran);
+            //pick a point on a line between the vertices of a triangle, then try to split into 2 districts. 
+            Polygon2D polygon = startingDistrict.polygon;
+            Point2D point1 = polygon.getPoints().get(ran.get(0));
+            Point2D point2 = polygon.getPoints().get(ran.get(1));
+
+            List<District> districts = new ArrayList<District>();
+            double slope = (point1.getY() - point2.getY()) / (point1.getX() - point2.getX());
+            double b = point2.getY() - (slope * point2.getX());
+            boolean valid = false;
+            double totalDistrictSize = startingDistrict.voters.size();
+            double topThreshold = totalDistrictSize/3 + (totalDistrictSize/3 * .01);
+            double bottomThreshold = totalDistrictSize/3 - (totalDistrictSize/3 * .01);
+            District district1 = new District();
+            District district2 = new District();
+            District district3 = new District();
+            Point2D mid1 = new Point2D.Double(0,0);
+            
+            double diff = 1.;
+            double i = 1.;
+            double dec = 1.;
+            boolean check = false;
+            while (!valid){
+                if (point1.getX() > point2.getX()){
+                    i = diff * -1;
+                } else {
+                    i = diff;
+                }
+                Point2D trialPoint = new Point2D.Double(point1.getX() + i, (slope * (point1.getX() + i)) + b);
+                Polygon2D polygon1 = new Polygon2D();
+                Polygon2D polygon2 = new Polygon2D();
+                polygon1.append(point1);
+                polygon1.append(trialPoint);
+                polygon1.append(polygon.getPoints().get(ran.get(2)));
+                district1 = new District(polygon1, startingDistrict.voters, false);
+
+                polygon2.append(point2);
+                polygon2.append(trialPoint);
+                polygon2.append(polygon.getPoints().get(ran.get(2)));
+                district2 = new District(polygon2, startingDistrict.voters, false);
+                if (district1.voters.size() >= bottomThreshold && district1.voters.size() < topThreshold){
+                    valid = true;
+                    mid1 = trialPoint;
+                } else if (district1.voters.size() > topThreshold){
+                    //System.out.println("Something");
+                    check = true;
+                    diff-=dec;
+                    //throw new IllegalArgumentException("District contains too many voters, can't split");
+                } else {
+                    if(check) {
+                        check = false;
+                        diff += dec;
+                        dec /= 2.;
+                    }
+                    else diff+=3;
+                }
+            }
+            valid = false;
+            diff = 1.;
+            dec = 1.;
+            check = false;
+            while (!valid){
+                if (mid1.getX() > point2.getX()){
+                    i = diff * -1;
+                } else {
+                    i = diff;
+                }
+                Point2D trialPoint = new Point2D.Double(mid1.getX() + i, (slope * (mid1.getX() + i)) + b);
+
+                Polygon2D polygon2 = new Polygon2D();
+                polygon2.append(mid1);
+                polygon2.append(trialPoint);
+                polygon2.append(polygon.getPoints().get(ran.get(2)));
+                district2 = new District(polygon2, startingDistrict.voters, false);
+
+                Polygon2D polygon3 = new Polygon2D();
+                polygon3.append(trialPoint);
+                polygon3.append(point2);
+                polygon3.append(polygon.getPoints().get(ran.get(2)));
+                district3 = new District(polygon3, startingDistrict.voters, false);
+                if (district2.voters.size() >= bottomThreshold && district2.voters.size() < topThreshold){
+                    valid = true;
+                } else if (district2.voters.size() > topThreshold){
+                    //System.out.println("Something2");
+                    check = true;
+                    diff-= dec;
+                    //throw new IllegalArgumentException("District contains too many voters, can't split");
+                } else {
+                    if(check) {
+                        check = false;
+                        diff += dec;
+                        dec /= 2.;
+                    }
+                    else diff+=3;
+                }
+            }
+
+            districts.add(district1);
+            districts.add(district2);
+            districts.add(district3);
+            return districts;
+        }
     }
 }
