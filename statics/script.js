@@ -70,15 +70,16 @@ function loadData(data) {
   loaded = false;
   voters = [];
   districts = [];
+  vdList = []; dColor = []; voting = []; seats = [];
   var lines = data.split("\n");
   var n, p, i, j, it = 0, m;
   [n, p] = lines[it].split(" ").map(x => parseInt(x));
   for (it = 1; it <= n; ++ it) {
-    voters.push(lines[it].split(" ").map(x => parseFloat(x)));
+    voters.push(lines[it].trim().split(" ").map(x => parseFloat(x)));
   }
   m = parseInt(lines[it ++]);
   while (m --) {
-    var line = lines[it ++].split(" ").map(x => parseFloat(x));
+    var line = lines[it ++].trim().split(" ").map(x => parseFloat(x));
     var l = line[0];
     var district = [];
     for (i = 0; i < l; ++ i)

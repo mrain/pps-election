@@ -1,134 +1,19 @@
-import math
 import random
-from typing import List
+from collections import defaultdict
+from itertools import combinations, product
+from typing import List, Tuple
+
+import metis
+import networkx as nx
+from shapely.geometry import Polygon
 from shapely.ops import cascaded_union
 
-import networkx as nx
-import metis
-import numpy as np
-from shapely.geometry import Polygon
-
 from election.g6.src.voter import Voter
-
-num_parties = 3
-triangle = Polygon([(0, 0), (1000, 0), (500, 500 * math.sqrt(3))])
+METIS_DBG_ALL = sum(2**i for i in list(range(9))+[11])
 
 
 def is_in_polygon(voter: Voter, polygon: Polygon) -> bool:
     return polygon.contains(voter.location)
-
-
-def get_voters_in_polygon(polygon: Polygon, voters: List[Voter]) -> List[Polygon]:
-    return list(filter(lambda x: is_in_polygon(x, polygon), voters))
-
-
-def naive_partition(n: int) -> List[Polygon]:
-    print("adada")
-    edge_length = 1000 / n
-    x_diff = 1 / 2 * edge_length
-    y_diff = math.sqrt(3) / 2 * edge_length
-    points_by_level = [[(500, 500 * math.sqrt(3))]]
-    for level in range(n):
-        new_level = []
-        for point in points_by_level[-1]:
-            new_point = (point[0] - x_diff, point[1] - y_diff)
-            new_level.append(new_point)
-        new_point = (point[0] + x_diff, point[1] - y_diff)
-        new_level.append(new_point)
-        points_by_level.append(new_level)
-
-    result = []
-    for level in range(n):
-        curr_level = points_by_level[level]
-        next_level = points_by_level[level + 1]
-        temp = [next_level[0]]
-        for p1, p2 in zip(curr_level, next_level[1:]):
-            temp.append(p1)
-            temp.append(p2)
-
-        for i in range(len(temp) - 2):
-            p1, p2, p3 = temp[i], temp[i + 1], temp[i + 2]
-            result.append(Polygon([p1, p2, p3]))
-
-    return result
-
-
-def height_adjustable_partition(n: int) -> List[Polygon]:
-    # TODO
-    edge_length = 1000 / n
-    x_diff = 1 / 2 * edge_length
-    y_diff = math.sqrt(3) / 2 * edge_length
-    points_by_level = [[(500, 500 * math.sqrt(3))]]
-    for level in range(n):
-        new_level = []
-        for point in points_by_level[-1]:
-            new_point = (point[0] - x_diff, point[1] - y_diff)
-            new_level.append(new_point)
-        new_point = (point[0] + x_diff, point[1] - y_diff)
-        new_level.append(new_point)
-        points_by_level.append(new_level)
-
-    result = []
-    for level in range(n):
-        curr_level = points_by_level[level]
-        next_level = points_by_level[level + 1]
-        temp = [next_level[0]]
-        for p1, p2 in zip(curr_level, next_level[1:]):
-            temp.append(p1)
-            temp.append(p2)
-
-        for i in range(len(temp) - 2):
-            p1, p2, p3 = temp[i], temp[i + 1], temp[i + 2]
-            result.append(Polygon([p1, p2, p3]))
-
-    return result
-
-
-# partition into three smaller triangles recursively
-def recursive_partition(triangle: Polygon, voters: List[Voter], threshold,
-                        tolerance=2.2) -> List[Polygon]:
-    new_voters = get_voters_in_polygon(triangle, voters)
-    if len(new_voters) <= tolerance * threshold:
-        return [triangle]
-
-    # TODO: better centroid finding algorithm, e.g fast median
-    x, y = 0, 0
-    for voter in new_voters:
-        x += voter.location.x
-        y += voter.location.y
-    x /= len(new_voters)
-    y /= len(new_voters)
-
-    centroid = (x, y)
-    temp = list(triangle.exterior.coords)
-    p1, p2, p3 = temp[0], temp[1], temp[2]
-    new_triangle1 = Polygon([p1, p2, centroid])
-    new_triangle2 = Polygon([p1, p3, centroid])
-    new_triangle3 = Polygon([p2, p3, centroid])
-    result = recursive_partition(new_triangle1, new_voters, threshold, tolerance) + \
-             recursive_partition(new_triangle2, new_voters, threshold, tolerance) + \
-             recursive_partition(new_triangle3, new_voters, threshold, tolerance)
-    return result
-
-
-def combined_partition(n: int, threshold, voters: List[Voter]) -> List[Polygon]:
-    result = []
-    polygons = naive_partition(n)
-    print("Naive done", flush=True)
-    for polygon in polygons:
-        result += recursive_partition(polygon, voters, threshold)
-        print(".", end='', flush=True)
-    return result
-
-
-def k_means_clustering():
-    # TODO: Derek
-    pass
-
-
-def get_initial_triangles(voters: List[Voter], threshold, n_levels: int, seed: int = 1234) -> List[Polygon]:
-    np.random.seed(seed)
-    return combined_partition(n_levels, threshold, voters)
 
 
 class District:
@@ -170,7 +55,21 @@ def find_adjacent_triangle(index, triangles: List[Polygon]):
     return inds
 
 
-def get_districts_from_triangles(voters: List[Voter], raw_triangles: List[Polygon], n_districts: int, seed: int) -> List[Polygon]:
+def check_if_node_is_near_part_boundary(graph, node):
+    return True
+
+
+def get_n_voters_in_polygon(polygon: Polygon, voters: List[Voter]) -> Tuple[int, List[Voter]]:
+    s = 0
+    for i, v in enumerate(voters):
+        if is_in_polygon(v, polygon):
+            s += 1
+    return s, voters
+
+
+def get_districts_from_triangles(
+        voters: List[Voter], raw_triangles: List[Polygon], n_districts: int, seed: int
+) -> List[Polygon]:
     # triangles = []
     # for rt in raw_triangles:
     #     triangles.append(Triangle(get_voters_in_polygon(rt, voters), rt))
@@ -183,27 +82,79 @@ def get_districts_from_triangles(voters: List[Voter], raw_triangles: List[Polygo
     #     d.append_triangle(triangles[index])
     #     districts.append(d)
     #     free_triangles.pop(index)
+    print('Forming graph')
     graph = nx.Graph()
+    graph.graph['node_weight_attr'] = 'population'
     graph.add_nodes_from(list(range(len(raw_triangles))))
+    voters = random.sample(voters, 3333)
     for index, triangle in enumerate(raw_triangles):
+        print(str(index+1) + '/' + str(len(raw_triangles)), flush=True)
+        print(len(voters))
+        population, voters = get_n_voters_in_polygon(triangle, voters)
+        graph.nodes[index]['population'] = population
         adj_trs = find_adjacent_triangle(index, raw_triangles)
         for tr in adj_trs:
             graph.add_edge(index, tr)
     # Extension
-    (edgecuts, parts) = metis.part_graph(graph, n_districts, ncuts=2, niter=20, contig=True)
+    print('Making initial partition')
+    (edgecuts, parts) = metis.part_graph(
+        graph,
+        n_districts,
+        ncuts=2,  # number of different cuts to try
+        niter=20,  # number of iterations of an algorithm
+        contig=True,  # force partitions to be contiguous
+        ubvec=[1.1],  # allowed constraint imbalance
+    )
+    print('Forming districts')
     districts = []
     for i in range(n_districts):
         districts.append(District())
     for index, part in enumerate(parts):
+        graph.nodes[index]['part'] = part
         districts[part].append_triangle(raw_triangles[index])
+
+    # niters = 1000
+    # nsample = 50
+    # for i in range(niters):
+    #     # sample random vertices pairs
+    #     sampled_nodes = random.sample(graph.nodes, nsample)
+    #     candidate_nodes = []
+    #     for node in sampled_nodes:
+    #         is_near_boundary = check_if_node_is_near_part_boundary(graph, node)
+    #         if is_near_boundary:
+    #             candidate_nodes.append(node)
+    #     parts_nodes = defaultdict(list)
+    #     swap_proposals = []
+    #     for node in candidate_nodes:
+    #         parts_nodes[node['part']].append(node)
+    #     for a, b in combinations(parts_nodes.keys(), 2):
+    #         for node1, node2 in product(parts_nodes[a], parts_nodes[b]):
+    #             node1_has_where_to_flip = False
+    #             node2_has_where_to_flip = False
+    #             for n in graph.neighbors(node1):
+    #                 if n != node2:
+    #                     node1_has_where_to_flip = True
+    #                     break
+    #             for n in graph.neighbors(node2):
+    #                 if n != node1:
+    #                     node2_has_where_to_flip = True
+    #                     break
+    #             if node1_has_where_to_flip and node2_has_where_to_flip:
+    #                 swap_proposals.append([
+    #                     [a, node1],
+    #                     [b, node2]
+    #                 ])
+    #     # check if flipping each pair is better for metric
+    #     # check if flip is valid
+    #     # flip
+    #     pass
+    print('Returning polygons')
     return [d.get_one_polygon() for d in districts]
 
 
-def get_districts(voters: List[Voter], representatives_per_district: int, seed: int) -> List[Polygon]:
-    n_districts = 81
-    n_triangles = n_districts * 7
-    threshold = len(voters) / n_triangles
-    n_levels = 22
-    triangles = get_initial_triangles(voters, threshold, n_levels, seed)
+def get_districts(
+        voters: List[Voter], triangles: List[Polygon], representatives_per_district: int, seed: int
+) -> List[Polygon]:
+    n_districts = int(81. / representatives_per_district * 3.)
     districts = get_districts_from_triangles(voters, triangles, n_districts, seed)
     return districts
