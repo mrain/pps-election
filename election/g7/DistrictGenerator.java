@@ -14,8 +14,13 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     private Map<Integer, List<Voter>> voterMap = new HashMap<>();
     private Map<Integer, Boolean> checkMap = new HashMap<>();
     private int partyToWin = 1;
+    private Polygon2D board;
 
     public List<Voter> sortByXCoordinate(List<Voter>voters){
+        board = new Polygon2D();
+        board.append(0., 0.);
+        board.append(1000., 0.);
+        board.append(500., 500. * Math.sqrt(3));
         Collections.sort(voters, new Comparator<Voter>() {
             @Override
             public int compare(Voter v1, Voter v2) {
@@ -232,11 +237,6 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 for (Map.Entry<Integer, double[]> adjacentDistrict : adjacentDistricts.entrySet()) {
                     if (!isGerrymander) break;
                     int otherId = adjacentDistrict.getKey();
-                    if (checkMap.get(otherId)) {
-                        System.out.println("invalid!!");
-                        continue;
-
-                    }
                     double[] edge = adjacentDistrict.getValue();
                     double x1 = edge[0], y1 = edge[1], x2 = edge[2], y2 = edge[3];
                     double len = Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
@@ -248,7 +248,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                         double start = Math.max(y1, y2);
                         double end = Math.min(y1, y2);
                         double mid = (start + end) / 2 ;
-                        for (double i = mid; i - end > width; i -= width) {
+                        for (double i = start - 0.1; i - end > width; i -= width) {
                             Polygon2D concaveSwing = new Polygon2D();
                             Polygon2D convexAdjacent = new Polygon2D();
                             Polygon2D concaveAdjacent = new Polygon2D();
@@ -267,7 +267,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                         double start = Math.min(x1, x2);
                         double end = Math.max(x1, x2);
                         double mid = (start + end) / 2 ;
-                        for (double i = mid; end - i > width; i += width) {
+                        for (double i = start + 0.1; end - i > width; i += width) {
                             Polygon2D concaveSwing = new Polygon2D();
                             Polygon2D convexAdjacent = new Polygon2D();
                             Polygon2D concaveAdjacent = new Polygon2D();
@@ -665,31 +665,18 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 concave.append(x4, y1);
             }
         }
-        if (concave.getPoints().size() == 16) {
-            System.out.println("1616161616!!!");
-            for (Point2D point2D : concave.getPoints()) {
-                System.out.println(point2D);
-            }
-        }
     }
 
     private boolean setNewPolygon(int id, int otherId, Polygon2D convexSwing, Polygon2D concaveAdjacent,
                                   Polygon2D concaveSwing, Polygon2D convexAdjacent) {
-        Polygon2D board = new Polygon2D();
-        board.append(0., 0.);
-        board.append(1000., 0.);
-        board.append(500., 500. * Math.sqrt(3));
-//
 //        System.out.println("swing" + polygonMap.get(id));
 //        System.out.println("adj" + polygonMap.get(otherId));
 //        System.out.println("swing1" + convexSwing);
 //
 //        System.out.println("swing2" + concaveSwing);
 //        System.out.println("adj2" + convexAdjacent);
-        if (isValidGerrymander(id, otherId, convexSwing, concaveAdjacent)) {
-            if (convexSwing.overlap(concaveAdjacent))
-                return false;
-
+        if (board.contains(convexSwing) && board.contains(concaveAdjacent) &&
+                !convexSwing.overlap(concaveAdjacent) && isValidGerrymander(id, otherId, convexSwing, concaveAdjacent)) {
             System.out.println("in");
             checkMap.put(id, true);
             checkMap.put(otherId, true);
@@ -698,16 +685,9 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 
             return true;
         }
-        if (isValidGerrymander(id, otherId, concaveSwing, convexAdjacent)) {
-            if (concaveSwing.overlap(convexAdjacent))
-                return false;
+        if (board.contains(concaveSwing) && board.contains(convexAdjacent) &&
+                !concaveSwing.overlap(convexAdjacent) && isValidGerrymander(id, otherId, concaveSwing, convexAdjacent)) {
             System.out.println("in1");
-//            System.out.println("swing" + id);
-//            System.out.println("adj" + otherId);
-//            System.out.println("swing" + polygonMap.get(id));
-//            System.out.println("swing1" + concaveSwing);
-//            System.out.println("adj" + polygonMap.get(otherId));
-//            System.out.println("adj1" + convexAdjacent);
             checkMap.put(id, true);
             checkMap.put(otherId, true);
             polygonMap.put(id, concaveSwing);
@@ -732,11 +712,5 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 new Point2D.Double(Double.valueOf(split[2]), Double.valueOf(split[3])));
     }
 
-    void print(double[] a) {
-        System.out.println(a[0]);
-        System.out.println(a[1]);
-        System.out.println(a[2]);
-        System.out.println(a[3]);
-    }
 
 }
