@@ -269,7 +269,11 @@ def sample_new_district_centers(centroids, districts, voters, sample=True):
         new_districts = draw_districts(new_centroids)
         is_valid, voters_by_district, too_big, overflow = is_valid_draw(new_districts, voters)
         iteration += 1
-
+        if iteration > 1000 and overflow < 0.05:
+            np.save(open('adjusted_data/centroids_overflow_{}_iterations_{}.npy'.format(overflow, iteration), 'wb'),
+                    new_centroids)
+            np.save(open('adjusted_data/districts_overflow_{}_iterations_{}.npy'.format(overflow, iteration), 'wb'),
+                    new_districts)
     return new_centroids, new_districts, voters_by_district
 
 
@@ -395,8 +399,8 @@ if __name__ == '__main__':
 
     # Ensure valid
     centroids, districts, _ = sample_new_district_centers(centroids, districts, voters, sample=False)
-    np.save(open('centroids.npy', 'wb'), centroids)
-    np.save(open('districts.npy', 'wb'), districts)
+    np.save(open('adjusted_data/centroids.npy', 'wb'), centroids)
+    np.save(open('adjusted_data/districts.npy', 'wb'), districts)
 
     # LOAD INITIAL DISTRICTS
     initial_districts = copy.deepcopy(districts)  # Keep a hardcopy of this
