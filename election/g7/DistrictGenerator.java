@@ -533,8 +533,24 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         //should pass in polygon id here
         List<Voter> voters_curr = voterMap.get(id);
         int blue = countWin(voters_curr);
-        //only a valid swing state between 0.42 and 0.5
-        if (blue / (double)voters_curr.size() > 0.42 && blue / (double)voters_curr.size() < 0.5) {
+        //three conditions
+        if ( (blue / (double)voters_curr.size() > 0.42 && blue / (double)voters_curr.size() < 0.5)
+        || (blue / (double)voters_curr.size() > 0.17 && blue / (double)voters_curr.size() < 0.25) ||
+                (blue / (double)voters_curr.size() > 0.67 && blue / (double)voters_curr.size() < 0.75)) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean increaseRepresentatives(List<Voter> original_swing, List<Voter> new_swing){
+        //take for granted that Swing states are passed in
+        if ( ((double)countWin(original_swing) / original_swing.size() > 0.67 )&& ((double)countWin(new_swing) / new_swing.size() > 0.75)){
+            return true;
+        }
+        else if ( ((double)countWin(original_swing) / original_swing.size() > 0.42 )&& ((double)countWin(new_swing) / new_swing.size() > 0.5)){
+            return true;
+        }
+        else if ( ((double)countWin(original_swing) / original_swing.size() > 0.17 )&& ((double)countWin(new_swing) / new_swing.size() > 0.25)){
             return true;
         }
         return false;
@@ -543,6 +559,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     //Check population is valid for two polygon2 and if how beneficial it is for digging.
     private boolean isValidGerrymander(int swingId, int otherId, Polygon2D swing, Polygon2D other) {
         List<Voter> swing_voters = new ArrayList<>();
+        List<Voter> swing_voters_original = voterMap.get(swingId);
 
 
         //Recalculate people in proposed districts
@@ -568,8 +585,12 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 
 
 
-        int num_win = countWin(swing_voters);
-        if ((double)num_win / swing_voters.size() > 0.5) {
+//        int num_win = countWin(swing_voters);
+
+//        if ((double)num_win / swing_voters.size() > 0.5) {
+//            return true;
+//        }
+        if (increaseRepresentatives(swing_voters_original,swing_voters)){
             return true;
         }
         return false;
