@@ -2,7 +2,7 @@ import numpy as np
 from collections import defaultdict
 import math
 import copy
-from sklearn.cluster import KMeans, MiniBatchKMeans
+from sklearn.cluster import MiniBatchKMeans
 from shapely.geometry import Point, Polygon, LineString
 from scipy.spatial import Voronoi
 from random import random
@@ -212,7 +212,7 @@ def is_valid_draw(new_districts, voters):
 
     assert magnitude > 0.0
     magnitude_norm = magnitude / float(mean)
-    return False, chosen_invalid_idx, too_big, magnitude_norm
+    return False, chosen_invalid_idx, too_big, magnitude_norm, total_overflow + total_underflow
 
 
 def find_closest(centroids, idx, n=2):
@@ -239,35 +239,55 @@ def sample_new_district_centers(centroids, districts, voters, sample=True):
     else:
         new_centroids = centroids
         new_districts = districts
-    is_valid, voters_by_district, too_big, overflow = is_valid_draw(new_districts, voters)
+    is_valid, voters_by_district, too_big, overflow, prev_total_overflow = is_valid_draw(new_districts, voters)
     iteration = 0
-    baseline = 0.2
+    baseline = 0.1
     while not is_valid:
+        centroid_candidates = new_centroids.copy()
         move_perc = baseline * overflow
         invalid_idx = voters_by_district
         # find adjacent centroid and move it closer
-        closest_centroid_idxs = find_closest(new_centroids, invalid_idx, n=1)
-        start_coords = new_centroids[invalid_idx]
+        start_coords = centroid_candidates[invalid_idx]
+        start_coords[0] += np.random.normal(0, 2)
+        start_coords[1] += np.random.normal(0, 2)
+        closest_centroid_idxs = find_closest(centroid_candidates, invalid_idx, n=3)
         if too_big:
             for closest_centroid_idx in closest_centroid_idxs:
+                x_noise = np.random.normal(0, 2)
+                y_noise = np.random.normal(0, 2)
                 # move x% closer
-                end_coords = new_centroids[closest_centroid_idx]
-                end_coords[0] = start_coords[0] * move_perc + end_coords[0] * (1.0 - move_perc)
-                end_coords[1] = start_coords[1] * move_perc + end_coords[1] * (1.0 - move_perc)
-                new_centroids[closest_centroid_idx] = end_coords
+                move_perc_adj = random() * move_perc
+                end_coords = centroid_candidates[closest_centroid_idx]
+                end_coords[0] = start_coords[0] * move_perc_adj + end_coords[0] * (1.0 - move_perc_adj) + x_noise
+                end_coords[1] = start_coords[1] * move_perc_adj + end_coords[1] * (1.0 - move_perc_adj) + y_noise
+                centroid_candidates[closest_centroid_idx] = end_coords
         else:
             for closest_centroid_idx in closest_centroid_idxs:
-                end_coords = new_centroids[closest_centroid_idx]
+                x_noise = np.random.normal(0, 2)
+                y_noise = np.random.normal(0, 2)
+                move_perc_adj = random() * move_perc
+                end_coords = centroid_candidates[closest_centroid_idx]
                 slope = (end_coords[1] - start_coords[1]) / float(end_coords[0] - start_coords[0])
                 difference_x = end_coords[0] - start_coords[0]
-                delta_x = move_perc * difference_x
+                delta_x = move_perc_adj * difference_x
                 delta_y = delta_x * slope
-                new_centroids[closest_centroid_idx] = [end_coords[0] + delta_x, end_coords[1] + delta_y]
+                centroid_candidates[closest_centroid_idx] = [end_coords[0] + delta_x + x_noise,
+                                                       end_coords[1] + delta_y + y_noise]
 
         str1 = 'Shrinking' if too_big else 'Expanding'
         print('{} {} district by moving {} district'.format(str1, invalid_idx, closest_centroid_idxs))
-        new_districts = draw_districts(new_centroids)
-        is_valid, voters_by_district, too_big, overflow = is_valid_draw(new_districts, voters)
+        district_candidates = draw_districts(centroid_candidates)
+        is_valid, voters_by_district, too_big, overflow, total_flow = is_valid_draw(district_candidates, voters)
+        str1 = 'Shrinking' if too_big else 'Expanding'
+        if total_flow <= prev_total_overflow:
+            prev_total_overflow = total_flow
+            new_districts = district_candidates
+            new_centroids = centroid_candidates
+            print('{} {} district by moving {} district'.format(
+                str1, invalid_idx, closest_centroid_idxs))
+        else:
+            print('Tried unsuccessfully {} {} district by moving {} district'.format(
+                str1, invalid_idx, closest_centroid_idxs))
         iteration += 1
         if iteration > 1000 and overflow < 0.05:
             np.save(open('adjusted_data/centroids_overflow_{}_iterations_{}.npy'.format(overflow, iteration), 'wb'),
