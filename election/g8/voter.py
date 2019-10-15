@@ -186,7 +186,7 @@ def is_valid_draw(new_districts, voters):
         too_big_district_idxs = sorted_pop_idxs[too_big_breakpoint:]
 
     if len(too_small_district_idxs) + len(too_big_district_idxs) == 0:
-        True, voters_by_district, False, 0
+        return True, voters_by_district, False, 0
 
     underflow = lower - district_voters[too_small_district_idxs]
     overflow = district_voters[too_big_district_idxs] - upper
@@ -395,6 +395,8 @@ if __name__ == '__main__':
 
     # Ensure valid
     centroids, districts, _ = sample_new_district_centers(centroids, districts, voters, sample=False)
+    np.save(open('centroids.npy', 'wb'), centroids)
+    np.save(open('districts.npy', 'wb'), districts)
 
     # LOAD INITIAL DISTRICTS
     initial_districts = copy.deepcopy(districts)  # Keep a hardcopy of this
