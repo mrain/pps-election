@@ -229,7 +229,6 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 Map<Integer, double[]> adjacentDistricts = getAdjacentDistricts(id);
                 Polygon2D swing = entry.getValue();
                 boolean isGerrymander = true;
-                if (id == 63 || id == 72) continue;
                 for (Map.Entry<Integer, double[]> adjacentDistrict : adjacentDistricts.entrySet()) {
                     if (!isGerrymander) break;
                     int otherId = adjacentDistrict.getKey();
@@ -559,6 +558,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     //Check population is valid for two polygon2 and if how beneficial it is for digging.
     private boolean isValidGerrymander(int swingId, int otherId, Polygon2D swing, Polygon2D other) {
         List<Voter> swing_voters = new ArrayList<>();
+
         List<Voter> swing_voters_original = voterMap.get(swingId);
 
 
@@ -679,7 +679,6 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         board.append(0., 0.);
         board.append(1000., 0.);
         board.append(500., 500. * Math.sqrt(3));
-
 //
 //        System.out.println("swing" + polygonMap.get(id));
 //        System.out.println("adj" + polygonMap.get(otherId));
@@ -688,9 +687,9 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 //        System.out.println("swing2" + concaveSwing);
 //        System.out.println("adj2" + convexAdjacent);
         if (isValidGerrymander(id, otherId, convexSwing, concaveAdjacent)) {
-            if (!board.contains(concaveAdjacent) || !board.contains(convexSwing) ) {
+            if (convexSwing.overlap(concaveAdjacent))
                 return false;
-            }
+
             System.out.println("in");
             checkMap.put(id, true);
             checkMap.put(otherId, true);
@@ -700,9 +699,8 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             return true;
         }
         if (isValidGerrymander(id, otherId, concaveSwing, convexAdjacent)) {
-            if (!board.contains(concaveSwing) || !board.contains(convexAdjacent) ) {
+            if (concaveSwing.overlap(convexAdjacent))
                 return false;
-            }
             System.out.println("in1");
 //            System.out.println("swing" + id);
 //            System.out.println("adj" + otherId);
