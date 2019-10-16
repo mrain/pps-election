@@ -2,20 +2,20 @@ import numpy as np
 from collections import defaultdict
 import math
 import numpy as np
-import matplotlib as plt
 import copy
 import json
+import random
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.neighbors import KDTree
 from shapely.geometry import Point, Polygon, LineString
 from scipy.spatial import Voronoi
-from random import random
 
 
 WINNER_TAKE_ALL = False
-NUM_VOTERS = 3333  # 333333
+NUM_VOTERS = 33333
 RANDOM_SEED = 1992
 LOAD_CLUSTERS = False
+BASIC_KMEANS = True
 np.random.seed(RANDOM_SEED)
 
 
@@ -29,6 +29,7 @@ def BalancedClustering(k, cluster_centers, points):
         centroids[i,:] = np.mean(X[nearest_ind[0]],axis=0)
         X = np.delete(X, nearest_ind[0], axis=0)
     return centroids
+
 
 class Voter:
     def __init__(self, x, y, prefs):
@@ -83,7 +84,7 @@ def sample_new_point(prev_x, prev_y, area):
 def asymmetry_score(districts, voters, voters_by_district):
     seats_by_vote_perc = {}
     total_wasted_votes = np.zeros([2, ])
-    variations = np.arange(0.25, 1.0, .25)
+    variations = np.arange(0.1, 1.0, .1)
     for target_v in variations:
         new_voters = copy.deepcopy(voters)
         for v in new_voters:
@@ -174,8 +175,8 @@ def is_valid_draw(new_districts, voters):
     last_districts = []
     N = float(len(voters))
     mean = N / float(len(new_districts))
-    lower = mean * 0.9
-    upper = mean * 1.1
+    lower = mean * 0.85
+    upper = mean * 1.15
     for vidx, voter in enumerate(voters):
         district_idx = find_voter_district(new_districts, voter, last_districts)
         voters_by_district[district_idx].append(vidx)
@@ -205,7 +206,7 @@ def is_valid_draw(new_districts, voters):
         too_big_district_idxs = sorted_pop_idxs[too_big_breakpoint:]
 
     if len(too_small_district_idxs) + len(too_big_district_idxs) == 0:
-        return True, voters_by_district, False, 0
+        return True, voters_by_district, 0
 
     underflow = lower - district_voters[too_small_district_idxs]
     overflow = district_voters[too_big_district_idxs] - upper
@@ -213,25 +214,8 @@ def is_valid_draw(new_districts, voters):
     total_overflow = overflow.sum()
     total_underflow = underflow.sum()
 
-    candidate_district_idxs = np.concatenate([too_small_district_idxs, too_big_district_idxs])
-    SOFTMAX = False
-    flow_magnitudes = np.concatenate([underflow, overflow])
-    if SOFTMAX:
-        flow_magnitudes = np.exp(flow_magnitudes)
-    flow_magnitudes_norm = flow_magnitudes / flow_magnitudes.sum()
-    chosen_invalid_idx = np.random.choice(candidate_district_idxs, size=1, p=flow_magnitudes_norm)[0]
-
     print('Total Underflow / Overflow is {} / {} voters'.format(total_underflow, total_overflow))
-    chosen_district_pop = district_voters[chosen_invalid_idx]
-    too_big = chosen_district_pop > upper
-    if too_big:
-        magnitude = chosen_district_pop - upper
-    else:
-        magnitude = lower - chosen_district_pop
-
-    assert magnitude > 0.0
-    magnitude_norm = magnitude / float(mean)
-    return False, chosen_invalid_idx, too_big, magnitude_norm, total_overflow + total_underflow
+    return False, None, total_overflow + total_underflow
 
 
 def find_closest(centroids, idx, n=2):
@@ -258,79 +242,31 @@ def sample_new_district_centers(centroids, districts, voters, sample=True):
     else:
         new_centroids = centroids
         new_districts = districts
-    is_valid, voters_by_district, too_big, overflow, prev_total_overflow = is_valid_draw(new_districts, voters)
+    is_valid, voters_by_district, prev_total_overflow = is_valid_draw(new_districts, voters)
     iteration = 0
-    baseline = 0.25
     while not is_valid:
         centroid_candidates = new_centroids.copy()
-        move_perc = baseline * overflow
-        invalid_idx = voters_by_district
-        # find adjacent centroid and move it closer
-        start_coords = centroid_candidates[invalid_idx]
-        while True:
-            new_start_x = start_coords[0] + np.random.normal(0, 2)
-            new_start_y = start_coords[1] + np.random.normal(0, 2)
-            if not out_of_bounds(new_start_x, new_start_y):
-                start_coords = [new_start_x, new_start_y]
-                break
-            else:
-                print('OOB')
 
-        closest_centroid_idxs = find_closest(centroid_candidates, invalid_idx, n=3)
-        if too_big:
-            for closest_centroid_idx in closest_centroid_idxs:
-                while True:
-                    x_noise = np.random.normal(0, 2)
-                    y_noise = np.random.normal(0, 2)
-                    # move x% closer
-                    move_perc_adj = random() * move_perc
-                    end_coords = centroid_candidates[closest_centroid_idx]
-                    new_end_x = start_coords[0] * move_perc_adj + end_coords[0] * (1.0 - move_perc_adj) + x_noise
-                    new_end_y = start_coords[1] * move_perc_adj + end_coords[1] * (1.0 - move_perc_adj) + y_noise
-                    if not out_of_bounds(new_end_x, new_end_y):
-                        centroid_candidates[closest_centroid_idx] = [new_end_x, new_end_y]
-                        break
-                    else:
-                        print('OOB')
-        else:
-            for closest_centroid_idx in closest_centroid_idxs:
-                while True:
-                    x_noise = np.random.normal(0, 2)
-                    y_noise = np.random.normal(0, 2)
-                    move_perc_adj = random() * move_perc
-                    end_coords = centroid_candidates[closest_centroid_idx]
-                    slope = (end_coords[1] - start_coords[1]) / float(end_coords[0] - start_coords[0])
-                    difference_x = end_coords[0] - start_coords[0]
-                    delta_x = move_perc_adj * difference_x
-                    delta_y = delta_x * slope
-                    new_end_x = end_coords[0] + delta_x + x_noise
-                    new_end_y = end_coords[1] + delta_y + y_noise
-                    if not out_of_bounds(new_end_x, new_end_y):
-                        centroid_candidates[closest_centroid_idx] = [new_end_x, new_end_y]
-                        break
-                    else:
-                        print('OOB')
+        NR = 1
+        for i in range(NR):
+            didx = np.random.choice(np.arange(len(centroid_candidates)))
+            centroid_candidates[didx][0] = centroid_candidates[didx][0] + np.random.normal(0, 5 / float(NR))
+            centroid_candidates[didx][1] = centroid_candidates[didx][1] + np.random.normal(0, 5 / float(NR))
 
-        str1 = 'Shrinking' if too_big else 'Expanding'
-        print('{} {} district by moving {} district'.format(str1, invalid_idx, closest_centroid_idxs))
         district_candidates = draw_districts(centroid_candidates)
-        is_valid, voters_by_district, too_big, overflow, total_flow = is_valid_draw(district_candidates, voters)
-        str1 = 'Shrinking' if too_big else 'Expanding'
-        if total_flow <= prev_total_overflow:
+        is_valid, voters_by_district, total_flow = is_valid_draw(district_candidates, voters)
+        if total_flow <= prev_total_overflow or (total_flow < 1 and random() > 0.95):
             prev_total_overflow = total_flow
             new_districts = district_candidates
             new_centroids = centroid_candidates
-            print('{} {} district by moving {} district'.format(
-                str1, invalid_idx, closest_centroid_idxs))
         else:
-            print('Tried unsuccessfully {} {} district by moving {} district'.format(
-                str1, invalid_idx, closest_centroid_idxs))
+            print('Tried unsuccessfully')
+
+        if total_flow < 1.0 and iteration > 10000:
+            print('Saving almost data!')
+            json.dump(new_centroids.tolist(), open('adjusted_data/almost_centroids.npy', 'w'))
+            np.save(open('adjusted_data/almost_districts.npy', 'wb'), new_districts)
         iteration += 1
-        if iteration > 1000 and overflow < 0.05:
-            np.save(open('adjusted_data/centroids_overflow_{}_iterations_{}.npy'.format(overflow, iteration), 'wb'),
-                    new_centroids)
-            np.save(open('adjusted_data/districts_overflow_{}_iterations_{}.npy'.format(overflow, iteration), 'wb'),
-                    new_districts)
     return new_centroids, new_districts, voters_by_district
 
 
@@ -556,7 +492,7 @@ class EqualGroupsKMeans(BaseEstimator, ClusterMixin, TransformerMixin):
         probably much faster to than the default batch implementation.
     """
 
-    def __init__(self, n_clusters=81, init='k-means++', n_init=1, max_iter=100,
+    def __init__(self, n_clusters=81, init='k-means++', n_init=10, max_iter=100,
                  tol=1e-4, precompute_distances='auto', verbose=1, random_state=None, copy_x=True, n_jobs=-1):
         self.n_clusters = n_clusters
         self.init = init
@@ -1150,6 +1086,7 @@ def get_best_cluster_for_point(point, all_distances):
     cluster_id, point_dist = sorted_distances[0]
     return cluster_id, point_dist
 
+
 def get_best_point_distances(point, all_distances):
     """Gets a sorted by best distance of clusters
 
@@ -1209,9 +1146,9 @@ if __name__ == '__main__':
         print('Loading Clusters')
         centroids = json.load(open('EqualGroupKmeans_centroids.json', 'r'))
     else:
-        BASIC_KMEANS = False
         if BASIC_KMEANS:
-            kmeans = MiniBatchKMeans(n_clusters=ndist, random_state=0, batch_size=32, max_iter=20, init_size=3 * 81).fit(V)
+            kmeans = MiniBatchKMeans(
+                n_clusters=ndist, random_state=0, batch_size=32, max_iter=20, init_size=3 * 81).fit(V)
             centroids = BalancedClustering(ndist, kmeans.cluster_centers_, V)
         else:
             clf = EqualGroupsKMeans(n_clusters=ndist)
@@ -1226,7 +1163,7 @@ if __name__ == '__main__':
 
     # Ensure valid
     centroids, districts, _ = sample_new_district_centers(centroids, districts, voters, sample=False)
-    np.save(open('adjusted_data/centroids.npy', 'wb'), centroids)
+    json.dump(centroids.tolist(), open('adjusted_data/centroids.npy', 'w'))
     np.save(open('adjusted_data/districts.npy', 'wb'), districts)
 
     # LOAD INITIAL DISTRICTS
@@ -1253,5 +1190,9 @@ if __name__ == '__main__':
         best_score = max(best_score, gerrymander_scores[best_idx])
         # Choose best district from gerrymandering perspective
         districts = all_candidate_districts[best_idx]
+
+        print('Best score at {} is {}'.format(mut_idx, best_score))
+        np.save(open('best_districts_at_{}'.format(mut_idx), 'w'), districts)
+        json.dump(centroids.tolist(), open('best_centroids_at_{}'.format(mut_idx), 'w'))
 
     print('Best gerrymander score (-1, 1) is {}'.format(len(districts)))
