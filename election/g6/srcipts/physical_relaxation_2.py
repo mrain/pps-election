@@ -31,7 +31,7 @@ options = DrawOptions()
 space = pymunk.Space()
 
 space.gravity = 0, 0
-space.damping = .85
+space.damping = .9
 
 bs_to_triangle = {} # maps reach body shape points to triangles it is connected to
 triangle_coord_to_population = {} # Polygon is not hashable so I instead maps their coords to their population
@@ -46,10 +46,10 @@ for level, row in enumerate(partition):
         elif level == num_levels and (i == 0 or i == len(row) - 1):
             b = pymunk.Body(body_type=pymunk.Body.STATIC)
         else:
-            b = pymunk.Body(mass=15, moment=pymunk.inf, body_type=pymunk.Body.DYNAMIC)  # inf to disable rotation
+            b = pymunk.Body(mass=10, moment=pymunk.inf, body_type=pymunk.Body.DYNAMIC)  # inf to disable rotation
         b.position = point
 
-        s = pymunk.Circle(b, 6)
+        s = pymunk.Circle(b, 3)  # @ parameter
         space.add(b, s)
         curr.append(b)  # s
     bs.append(curr)
@@ -74,8 +74,8 @@ space.add(body, l3)
 
 def add_joint(a, b):
     rl = a.position.get_distance(b.position) * 1.0  # @parameter
-    stiffness = 250.  # @parameter
-    damping = 500.  # @parameter
+    stiffness = 200.  # @parameter
+    damping = 450.  # @parameter
     j = pymunk.DampedSpring(a, b, (0, 0), (0, 0), rl, stiffness, damping)
     j.max_bias = 1000  # @parameter
     # j.max_force = 50000
@@ -200,7 +200,7 @@ def apply_force(n):
                 centroid = triangle.centroid
                 coord = tuple(triangle.exterior.coords)
                 x, y = centroid.x, centroid.y
-                multiplier = 50000 * triangle_coord_to_population[coord] / n  # @parameter
+                multiplier = 120000 * triangle_coord_to_population[coord] / n  # @parameter
                 force = (multiplier * (x - bx), multiplier * (y - by))
                 body.apply_force_at_local_point(force, (0, 0))
 
@@ -208,19 +208,23 @@ def apply_force(n):
 
 recalculate(sampled_voters)
 
+count = 1
 def update(dt):
     # Note that we dont use dt as input into step. That is because the
     # simulation will behave much better if the step size doesnt change
     # between frames.
-    # r = 10
-    # for x in range(r):
-    #     space.step(1. / 30. / r)
+    # space.step(dt / 10)
+    global count
+    count += 1
+    if count % 10 == 0:
+        recalculate(sampled_voters)
     apply_force(len(sampled_voters))
-    #bs[4][2].apply_force_at_local_point((500000, 0), (0, 0))
-    space.step(dt / 10)
+    r = 10
+    for x in range(r):
+        space.step(1. / 30. / r)
 
 
-pyglet.clock.schedule_interval(update, 1 / 60.)
+pyglet.clock.schedule_interval(update, 1 / 30.)
 
 selected = None
 selected_joint = None
