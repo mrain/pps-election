@@ -292,7 +292,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     }
 
     private double getWidth(double len) {
-        return len / 10;
+        return len / 8;
     }
 
 
@@ -533,27 +533,15 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         List<Voter> voters_curr = voterMap.get(id);
         int blue = countWin(voters_curr);
         //three conditions
+//        || (blue / (double)voters_curr.size() > 0.17 && blue / (double)voters_curr.size() < 0.25) ||
+//                (blue / (double)voters_curr.size() > 0.67 && blue / (double)voters_curr.size() < 0.75)
         if ( (blue / (double)voters_curr.size() > 0.42 && blue / (double)voters_curr.size() < 0.5)
-        || (blue / (double)voters_curr.size() > 0.17 && blue / (double)voters_curr.size() < 0.25) ||
-                (blue / (double)voters_curr.size() > 0.67 && blue / (double)voters_curr.size() < 0.75)) {
+        ) {
             return true;
         }
         return false;
     }
 
-    private boolean increaseRepresentatives(List<Voter> original_swing, List<Voter> new_swing){
-        //take for granted that Swing states are passed in
-        if ( ((double)countWin(original_swing) / original_swing.size() > 0.67 )&& ((double)countWin(new_swing) / new_swing.size() > 0.75)){
-            return true;
-        }
-        else if ( ((double)countWin(original_swing) / original_swing.size() > 0.42 )&& ((double)countWin(new_swing) / new_swing.size() > 0.5)){
-            return true;
-        }
-        else if ( ((double)countWin(original_swing) / original_swing.size() > 0.17 )&& ((double)countWin(new_swing) / new_swing.size() > 0.25)){
-            return true;
-        }
-        return false;
-    }
 
     //Check population is valid for two polygon2 and if how beneficial it is for digging.
     private boolean isValidGerrymander(int swingId, int otherId, Polygon2D swing, Polygon2D other) {
@@ -585,14 +573,27 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 
 
 
-//        int num_win = countWin(swing_voters);
+        int num_win = countWin(swing_voters);
 
-//        if ((double)num_win / swing_voters.size() > 0.5) {
-//            return true;
-//        }
-        if (increaseRepresentatives(swing_voters_original,swing_voters)){
+        if ((double)num_win / swing_voters.size() > 0.5) {
+//            System.out.print("old" + (double)countWin(swing_voters_original)/swing_voters_original.size());
+//            System.out.print("new" + (double)num_win / swing_voters.size());
             return true;
         }
+
+        //check for all three conditions, "Genertor time out"
+//        double new_ratio = num_win / swing_voters.size();
+//        double old_ratio = countWin(swing_voters_original)/swing_voters_original.size();
+//        System.out.println("old" + old_ratio);
+//        System.out.println("new" + new_ratio);
+//        boolean condition1 = new_ratio > 0.5 && old_ratio > 0.42 && old_ratio <0.5;
+//        boolean condition2 = new_ratio > 0.75 && old_ratio > 0.67 && old_ratio <0.75;
+//        boolean condition3 = new_ratio > 0.25 && old_ratio > 0.17 && old_ratio <0.25;
+//        if ( condition1 || condition2 || condition3) {
+//            return true;
+//        }
+
+
         return false;
     }
 
