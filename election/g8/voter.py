@@ -19,15 +19,30 @@ BASIC_KMEANS = True
 np.random.seed(RANDOM_SEED)
 
 
-def BalancedClustering(k, cluster_centers, points):
+def BalancedClustering_Method1(k, cluster_centroids, points):
     X = points.copy()
+    cluster_centers = cluster_centroids.copy()
+
+    n = math.ceil(X.shape[0]/k*1.05)
+
     centroids = np.zeros((k,2))
-    for i in range(k):
-        n = int(points.shape[0]/k)
-        tree = KDTree(X)
-        nearest_dist, nearest_ind = tree.query([cluster_centers[i,:]], k=n)
-        centroids[i,:] = np.mean(X[nearest_ind[0]],axis=0)
-        X = np.delete(X, nearest_ind[0], axis=0)
+    cardinality = np.array([0] * k)
+
+    for i in range(X.shape[0]):
+        tree = KDTree(cluster_centers)
+        nearest_dist, nearest_ind = tree.query([X[i,:]], k=1)
+        p = cluster_centers[nearest_ind[0]]
+        for j in range(cluster_centroids.shape[0]):
+            if p[0,0] == cluster_centroids[j,0] and p[0,1] == cluster_centroids[j,1]:
+                idx = j
+        cardinality[idx] += 1
+        centroids[idx,:] += X[i,:]
+        if(cardinality[idx] > n):
+            cluster_centers = np.delete(cluster_centers, nearest_ind[0], axis=0)
+
+    for i in range(centroids.shape[0]):
+        centroids[i,:] /= cardinality[i]
+
     return centroids
 
 
@@ -1149,7 +1164,11 @@ if __name__ == '__main__':
         if BASIC_KMEANS:
             kmeans = MiniBatchKMeans(
                 n_clusters=ndist, random_state=0, batch_size=32, max_iter=20, init_size=3 * 81).fit(V)
-            centroids = BalancedClustering(ndist, kmeans.cluster_centers_, V)
+
+            centroids = kmeans.cluster_centers_
+            for i in range(100):
+                print('Rebalancing cluster centers {}/{}'.format(str(i + 1), str(100)))
+                centroids = BalancedClustering_Method1(ndist, centroids, V)
         else:
             clf = EqualGroupsKMeans(n_clusters=ndist)
             clf.fit(V)
