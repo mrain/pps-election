@@ -68,6 +68,22 @@ def get_population_in_polygons(voters: List[Voter], polygons: List[Polygon]) -> 
     return population_counts
 
 
+def get_voters_in_polygon(voters: List[Voter], polygon: Polygon) -> List[Voter]:
+    vs = []
+    for v in voters:
+        if polygon.contains(v.location):
+            vs.append(v)
+    return vs
+
+
+def get_voters_in_polygons(voters: List[Voter], polygons: List[Polygon]) -> List[List[Voter]]:
+    population_counts = []
+    for index, polygon in enumerate(polygons):
+        population = get_voters_in_polygon(voters, polygon)
+        population_counts.append(population)
+    return population_counts
+
+
 def get_population_in_polygons_basic(voters: List[Voter], polygons: List[Polygon]) -> List[int]:
     population_counts = []
     for index, polygon in enumerate(polygons):
