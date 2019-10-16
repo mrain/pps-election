@@ -1,10 +1,8 @@
-import numpy as np
 from collections import defaultdict
 import math
 import numpy as np
 import copy
 import json
-import random
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.neighbors import KDTree
 from shapely.geometry import Point, Polygon, LineString
@@ -112,7 +110,7 @@ def asymmetry_score(districts, voters, voters_by_district):
     avg_efficiency_gap = (avg_wasted_votes[0] - avg_wasted_votes[1]) / float(len(voters))
     avg_pref_variation = np.mean(np.array(list(seats_by_vote_perc.keys())))
     assert avg_pref_variation > 0.45 and avg_pref_variation < 0.55
-    avg_votes_to_seats = np.mean(np.array(seats_by_vote_perc.values()))
+    avg_votes_to_seats = np.mean(np.array(list(seats_by_vote_perc.values())))
     avg_votes_to_seats_norm = 2 * avg_votes_to_seats - 1
     return (avg_votes_to_seats_norm + avg_efficiency_gap) / 0.5
 
@@ -270,14 +268,14 @@ def sample_new_district_centers(centroids, districts, voters, sample=True):
 
         district_candidates = draw_districts(centroid_candidates)
         is_valid, voters_by_district, total_flow = is_valid_draw(district_candidates, voters)
-        if total_flow <= prev_total_overflow or (total_flow < 1 and random() > 0.95):
+        if total_flow <= prev_total_overflow:
             prev_total_overflow = total_flow
             new_districts = district_candidates
             new_centroids = centroid_candidates
         else:
             print('Tried unsuccessfully')
 
-        if total_flow < 1.0 and iteration > 10000:
+        if total_flow < 25.0 and iteration > 1000:
             print('Saving almost data!')
             json.dump(new_centroids.tolist(), open('adjusted_data/almost_centroids.npy', 'w'))
             np.save(open('adjusted_data/almost_districts.npy', 'wb'), new_districts)
@@ -1159,7 +1157,7 @@ if __name__ == '__main__':
 
     if LOAD_CLUSTERS:
         print('Loading Clusters')
-        centroids = json.load(open('EqualGroupKmeans_centroids.json', 'r'))
+        centroids = np.array(json.load(open('adjusted_data/centroids.json', 'r')))
     else:
         if BASIC_KMEANS:
             kmeans = MiniBatchKMeans(
@@ -1182,7 +1180,7 @@ if __name__ == '__main__':
 
     # Ensure valid
     centroids, districts, _ = sample_new_district_centers(centroids, districts, voters, sample=False)
-    json.dump(centroids.tolist(), open('adjusted_data/centroids.npy', 'w'))
+    json.dump(centroids.tolist(), open('adjusted_data/centroids.json', 'w'))
     np.save(open('adjusted_data/districts.npy', 'wb'), districts)
 
     # LOAD INITIAL DISTRICTS
@@ -1211,7 +1209,7 @@ if __name__ == '__main__':
         districts = all_candidate_districts[best_idx]
 
         print('Best score at {} is {}'.format(mut_idx, best_score))
-        np.save(open('best_districts_at_{}'.format(mut_idx), 'w'), districts)
-        json.dump(centroids.tolist(), open('best_centroids_at_{}'.format(mut_idx), 'w'))
+        np.save(open('best_districts_at_{}.npy'.format(mut_idx), 'wb'), districts)
+        json.dump(centroids.tolist(), open('best_centroids_at_{}.json'.format(mut_idx), 'w'))
 
     print('Best gerrymander score (-1, 1) is {}'.format(len(districts)))
