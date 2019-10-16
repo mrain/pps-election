@@ -40,6 +40,14 @@ def count_population_in_polygon(voters: List[Voter], polygon) -> int:
     return count
 
 
+def check_if_node_is_near_part_boundary(graph, node: int) -> bool:
+    part = graph.nodes[node]['part']
+    for n in graph.neighbors(node):
+        if graph.nodes[n]['part'] != part:
+            return True
+    return False
+
+
 def get_population_in_polygons(voters: List[Voter], polygons: List[Polygon]) -> List[int]:
     # Sort the population according to x into two array
     voters_by_x = sorted(voters, key=lambda x: x.location.x)
@@ -56,6 +64,22 @@ def get_population_in_polygons(voters: List[Voter], polygons: List[Polygon]) -> 
         polygon_voters_in_box = get_voters_in_range(polygon_voters_by_y, y_min, y_max, lambda x: x.location.y)
         # Count population in the polygon
         population = count_population_in_polygon(polygon_voters_in_box, polygon)
+        population_counts.append(population)
+    return population_counts
+
+
+def get_voters_in_polygon(voters: List[Voter], polygon: Polygon) -> List[Voter]:
+    vs = []
+    for v in voters:
+        if polygon.contains(v.location):
+            vs.append(v)
+    return vs
+
+
+def get_voters_in_polygons(voters: List[Voter], polygons: List[Polygon]) -> List[List[Voter]]:
+    population_counts = []
+    for index, polygon in enumerate(polygons):
+        population = get_voters_in_polygon(voters, polygon)
         population_counts.append(population)
     return population_counts
 
