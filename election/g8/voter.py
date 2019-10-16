@@ -1207,7 +1207,7 @@ if __name__ == '__main__':
 
     if LOAD_CLUSTERS:
         print('Loading Clusters')
-        centroids = np.load(open('EqualGroupKmeans.npy'), 'r')
+        centroids = json.load(open('EqualGroupKmeans_centroids.json', 'r'))
     else:
         BASIC_KMEANS = False
         if BASIC_KMEANS:
@@ -1217,7 +1217,7 @@ if __name__ == '__main__':
             clf = EqualGroupsKMeans(n_clusters=ndist)
             clf.fit(V)
             np.save(open('EqualGroupKmeans.npy', 'wb'), clf)
-            json.dump(clf.cluster_centers_.tolist(), open('EqualGroupKmeans_centroids.npy', 'w'))
+            json.dump(clf.cluster_centers_.tolist(), open('EqualGroupKmeans_centroids.json', 'w'))
             centroids = clf.cluster_centers_
 
     # Generate Voronoi with generator points = cluster centroids
