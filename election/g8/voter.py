@@ -12,6 +12,7 @@ from scipy.spatial import Voronoi
 WINNER_TAKE_ALL = False
 NUM_VOTERS = 33333
 RANDOM_SEED = 1992
+NUM_REBALANCE = 100
 LOAD_CLUSTERS = False
 BASIC_KMEANS = True
 np.random.seed(RANDOM_SEED)
@@ -112,7 +113,7 @@ def asymmetry_score(districts, voters, voters_by_district):
     assert avg_pref_variation > 0.45 and avg_pref_variation < 0.55
     avg_votes_to_seats = np.mean(np.array(list(seats_by_vote_perc.values())))
     avg_votes_to_seats_norm = 2 * avg_votes_to_seats - 1
-    return (avg_votes_to_seats_norm + avg_efficiency_gap) / 0.5
+    return (avg_votes_to_seats_norm + avg_efficiency_gap) / 2.0
 
 
 def find_voter_district(districts, voter, recent_district_idxs=[]):
@@ -1164,8 +1165,8 @@ if __name__ == '__main__':
                 n_clusters=ndist, random_state=0, batch_size=32, max_iter=20, init_size=3 * 81).fit(V)
 
             centroids = kmeans.cluster_centers_
-            for i in range(100):
-                print('Rebalancing cluster centers {}/{}'.format(str(i + 1), str(100)))
+            for i in range(NUM_REBALANCE):
+                print('Rebalancing cluster centers {}/{}'.format(str(i + 1), str(NUM_REBALANCE)))
                 centroids = BalancedClustering_Method1(ndist, centroids, V)
         else:
             clf = EqualGroupsKMeans(n_clusters=ndist)
@@ -1192,7 +1193,7 @@ if __name__ == '__main__':
         all_candidate_districts = []
         all_candidate_centroids = []
         gerrymander_scores = []
-        N = 10
+        N = 100
         for n in range(N):
             candidate_centroids, candidate_districts, voters_by_district = sample_new_district_centers(
                 centroids, districts, voters)
@@ -1209,7 +1210,7 @@ if __name__ == '__main__':
         districts = all_candidate_districts[best_idx]
 
         print('Best score at {} is {}'.format(mut_idx, best_score))
-        np.save(open('best_districts_at_{}.npy'.format(mut_idx), 'wb'), districts)
-        json.dump(centroids.tolist(), open('best_centroids_at_{}.json'.format(mut_idx), 'w'))
+        np.save(open('gerrymander_data/best_districts_at_{}.npy'.format(mut_idx), 'wb'), districts)
+        json.dump(centroids.tolist(), open('gerrymander_data/best_centroids_at_{}.json'.format(mut_idx), 'w'))
 
     print('Best gerrymander score (-1, 1) is {}'.format(len(districts)))
