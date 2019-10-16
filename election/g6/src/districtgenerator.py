@@ -9,7 +9,7 @@ from shapely.geometry import Polygon
 from election.g6.src import dist_analysis
 from election.g6.src.voter import Voter
 from election.g6.src.district import District
-from election.g6.src.metrics import wasted_vote_metric, get_metric
+from election.g6.src.metrics import wasted_vote_metric, get_metric, wasted_percentage_difference
 from election.g6.src.utils import check_if_node_is_near_part_boundary
 
 
@@ -41,7 +41,10 @@ def get_districts_from_triangles(
         graph.nodes[index]['part'] = part
         districts[part].append_triangle(triangles[index])
 
-    pre_wasted = wasted_vote_metric(districts, n_parties)
+    if n_parties == 3:
+        pre_wasted = wasted_percentage_difference(districts, n_parties)
+    else:
+        pre_wasted = wasted_vote_metric(districts, n_parties)
     # Iterative Gerrymandering
     nsample = 50
     for i in range(n_iterations):
@@ -81,7 +84,10 @@ def get_districts_from_triangles(
                 continue
             district_a = districts[swap_a[0]]
             district_b = districts[swap_b[0]]
-            before_swap = wasted_vote_metric([district_a, district_b], n_parties)
+            if n_parties == 3:
+                before_swap = wasted_percentage_difference([district_a, district_b], n_parties)
+            else:
+                before_swap = wasted_vote_metric([district_a, district_b], n_parties)
             triangle_a = triangles[swap_a[1]]
             triangle_b = triangles[swap_b[1]]
             district_a_after = District(representatives_per_district, n_parties)
@@ -96,7 +102,10 @@ def get_districts_from_triangles(
             district_b_after.append_triangle(triangle_a)
             if district_a_after.is_invalid() or district_b_after.is_invalid():
                 continue
-            after_swap = wasted_vote_metric([district_a_after, district_b_after], n_parties)
+            if n_parties == 3:
+                after_swap = wasted_percentage_difference([district_a_after, district_b_after], n_parties)
+            else:
+                after_swap = wasted_vote_metric([district_a_after, district_b_after], n_parties)
             # Gerrymandering for party 0 => decrease wasted votes for 0, increase for party 1
             metric = get_metric(before_swap, after_swap, gerrymander_for, n_parties)
             # metric = after_swap[1] - before_swap[1]
@@ -121,7 +130,10 @@ def get_districts_from_triangles(
             print('s', end='')
         print('.', end='')
     post = [(len(d.polygons), d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
-    post_wasted = wasted_vote_metric(districts, n_parties)
+    if n_parties == 3:
+        post_wasted = wasted_percentage_difference(districts, n_parties)
+    else:
+        post_wasted = wasted_vote_metric(districts, n_parties)
     print('Returning polygons')
     print(pre_wasted, post_wasted)
     print(post)

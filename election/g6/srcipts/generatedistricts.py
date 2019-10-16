@@ -28,7 +28,7 @@ if __name__ == '__main__':
     parser.add_argument('--input', '-i', type=str, default="maps/g6/0_randomg1_3.pickle")
     parser.add_argument('--input-map', '-im', type=str, default="maps/g1/randomg1_3.map")
     parser.add_argument('--n-iters', type=int, default=500)
-    parser.add_argument('--gerrymander-for', type=int, default=0)
+    parser.add_argument('--gerrymander-for', type=int, default=2)
     parser.add_argument('--output', '-o', type=str, default="maps/g6/6_randomg1_3_districts.map")
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--representatives', type=int, default=3)
