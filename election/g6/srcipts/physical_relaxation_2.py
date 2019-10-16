@@ -18,7 +18,7 @@ from shapely.geometry import Polygon
 
 from election.g6.src.trianglegenerator import naive_partition
 from election.g6.src.plothelper import draw_voters as plot_voters
-from election.g6.src.utils import get_population_in_polygons_basic, get_population_in_polygons
+from election.g6.src.utils import get_population_in_polygons_basic, get_population_in_polygons, save_triangles_to_file
 
 map_path = "maps/g7/2party.map"
 
@@ -212,20 +212,6 @@ def apply_force(n):
                 multiplier = force_multiplier * triangle_coord_to_population[coord] / n  # @parameter
                 force = (multiplier * (x - bx), multiplier * (y - by))
                 body.apply_force_at_local_point(force, (0, 0))
-
-
-def save_triangles_to_file(triangles, file="saved_triangles.dat"):
-    with open(file, 'w') as f:
-        for triangle in triangles:
-            coords = list(triangle.exterior.coords)
-            temp = []
-            for coord in coords[:3]:
-                temp.append(coord[0])
-                temp.append(coord[1])
-            temp = [str(x) for x in temp]
-            line = " ".join(temp) + '\n'
-            f.write(line)
-    print("File Saved")
 
 
 ### ALL SETUP DONE

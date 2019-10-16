@@ -94,3 +94,31 @@ def find_adjacent_triangle(index, triangles: List[Dict]):
 
 def is_in_polygon(voter: Voter, polygon: Polygon) -> bool:
     return polygon.contains(voter.location)
+
+
+def save_triangles_to_file(triangles, file="saved_triangles.dat"):
+    with open(file, 'w') as f:
+        for triangle in triangles:
+            coords = list(triangle.exterior.coords)
+            temp = []
+            for coord in coords[:3]:
+                temp.append(coord[0])
+                temp.append(coord[1])
+            temp = [str(x) for x in temp]
+            line = " ".join(temp) + '\n'
+            f.write(line)
+    print("File Saved")
+
+
+def read_triangles_from_file(file="saved_triangles.dat"):
+    triangles = []
+    with open(file, 'r') as f:
+        for line in f:
+            temp = line.split(" ")
+            temp = [float(x) for x in temp]
+            p1 = (temp[0], temp[1])
+            p2 = (temp[2], temp[3])
+            p3 = (temp[4], temp[5])
+            triangle = Polygon([p1, p2, p3])
+            triangles.append(triangle)
+    return triangles
