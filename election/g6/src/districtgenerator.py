@@ -4,90 +4,30 @@ from itertools import combinations, product
 from typing import List, Dict
 
 import metis
-import shapely
 from shapely.geometry import Polygon
-from shapely.ops import cascaded_union
 
 from election.g6.src import dist_analysis
 from election.g6.src.voter import Voter
-
-
-class District:
-    def __init__(self):
-        self.n_voters = 0
-        self.polygons = []
-
-    def append_triangle(self, triangle):
-        self.polygons.append(triangle)
-
-    def drop_triangle(self, triangle):
-        p = []
-        for polygon in self.polygons:
-            if polygon != triangle:
-                p.append(polygon)
-        self.polygons = p
-
-    def get_population(self):
-        population = 0
-        for polygon in self.polygons:
-            population += polygon['population']
-        return population
-
-    def get_one_polygon(self):
-        f = []
-        for p in self.polygons:
-            f.append(p['polygon'])
-        return cascaded_union(f)
-
-    def get_party_distribution(self):
-        party_distribution = [0, 0]
-        for polygon in self.polygons:
-            for party in polygon['party_distribution'].keys():
-                party_distribution[party] += polygon['party_distribution'][party]
-        return party_distribution
-
-    def get_party_seats(self):
-        party_distribution = self.get_party_distribution()
-        return dist_analysis.get_one_dist_seats(party_distribution, 3)
-
-    def is_invalid(self):
-        s = self.get_one_polygon()
-        return type(s) == shapely.geometry.MultiPolygon
-
-
-def check_if_node_is_near_part_boundary(graph, node: int) -> bool:
-    part = graph.nodes[node]['part']
-    for n in graph.neighbors(node):
-        if graph.nodes[n]['part'] != part:
-            return True
-    return False
-
-
-def wasted_vote_metric(given_districts: List[District]) -> List[int]:
-    party_distribution = {-1: [0, 0]}
-    party_seats = {-1: [0, 0]}
-    for index, d in enumerate(given_districts):
-        p = d.get_party_distribution()
-        s = d.get_party_seats()
-        for i, pp in enumerate(p):
-            party_distribution[-1][i] += pp
-        for i, ss in enumerate(s):
-            party_seats[-1][i] += ss
-        party_distribution[index] = p
-        party_seats[index] = s
-    wasted_votes = dist_analysis.get_wasted_votes(party_distribution, party_seats)
-    return wasted_votes[-1]
+from election.g6.src.district import District
+from election.g6.src.metrics import wasted_vote_metric, get_metric
+from election.g6.src.utils import check_if_node_is_near_part_boundary
 
 
 def get_districts_from_triangles(
-        voters: List[Voter], triangles: List[Dict], graph, n_districts: int, seed: int
+        voters: List[Voter],
+        representatives_per_district: int,
+        triangles: List[Dict],
+        graph,
+        n_districts: int,
+        n_iterations: int,
+        gerrymander_for: int,
+        seed: int
 ) -> List[Polygon]:
     print('Making initial partition')
+    n_parties = len(triangles[0]['party_distribution'].keys())
     (edgecuts, parts) = metis.part_graph(
         graph,
         n_districts,
-        # ctype='shem',
-        # rtype='sep2sided',
         ncuts=100,  # number of different cuts to try
         niter=2000,  # number of iterations of an algorithm
         contig=True,  # force partitions to be contiguous
@@ -96,17 +36,15 @@ def get_districts_from_triangles(
     print('Forming districts')
     districts = []
     for i in range(n_districts):
-        districts.append(District())
+        districts.append(District(representatives_per_district, n_parties))
     for index, part in enumerate(parts):
         graph.nodes[index]['part'] = part
         districts[part].append_triangle(triangles[index])
 
-    pre = [(len(d.polygons), d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
-    pre_wasted = wasted_vote_metric(districts)
+    pre_wasted = wasted_vote_metric(districts, n_parties)
     # Iterative Gerrymandering
-    niters = 1000
     nsample = 50
-    for i in range(niters):
+    for i in range(n_iterations):
         # sample random vertices pairs
         sampled_nodes = random.sample(graph.nodes, nsample)
         candidate_nodes = []
@@ -143,29 +81,27 @@ def get_districts_from_triangles(
                 continue
             district_a = districts[swap_a[0]]
             district_b = districts[swap_b[0]]
-            before_swap = wasted_vote_metric([district_a, district_b])
+            before_swap = wasted_vote_metric([district_a, district_b], n_parties)
             triangle_a = triangles[swap_a[1]]
             triangle_b = triangles[swap_b[1]]
-            district_a_after = District()
+            district_a_after = District(representatives_per_district, n_parties)
             for polygon in district_a.polygons:
                 if polygon != triangle_a:
                     district_a_after.append_triangle(polygon)
             district_a_after.append_triangle(triangle_b)
-            district_b_after = District()
+            district_b_after = District(representatives_per_district, n_parties)
             for polygon in district_b.polygons:
                 if polygon != triangle_b:
                     district_b_after.append_triangle(polygon)
             district_b_after.append_triangle(triangle_a)
             if district_a_after.is_invalid() or district_b_after.is_invalid():
                 continue
-            after_swap = wasted_vote_metric([district_a_after, district_b_after])
+            after_swap = wasted_vote_metric([district_a_after, district_b_after], n_parties)
             # Gerrymandering for party 0 => decrease wasted votes for 0, increase for party 1
-            metric = (before_swap[0] - after_swap[0]) + (after_swap[1] - before_swap[1])
+            metric = get_metric(before_swap, after_swap, gerrymander_for, n_parties)
             # metric = after_swap[1] - before_swap[1]
             # metric = before_swap[0] - after_swap[0]
             if metric > 0:
-                # before_swap = wasted_vote_metric([district_a, district_b])
-                # after_swap = wasted_vote_metric([district_a_after, district_b_after])
                 swapped_nodes.append(swap_a[1])
                 swapped_nodes.append(swap_b[1])
                 swapped_districts.append(swap_a[0])
@@ -183,19 +119,33 @@ def get_districts_from_triangles(
             graph.nodes[swap_a[1]]['part'] = swap_b[0]
             graph.nodes[swap_b[1]]['part'] = swap_a[0]
             print('s', end='')
-        # print(final_swaps)
-        # post = [(len(d.polygons), d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
         print('.', end='')
     post = [(len(d.polygons), d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
-    post_wasted = wasted_vote_metric(districts)
+    post_wasted = wasted_vote_metric(districts, n_parties)
     print('Returning polygons')
     print(pre_wasted, post_wasted)
+    print(post)
     return [d.get_one_polygon() for d in districts]
 
 
 def get_districts(
-        voters: List[Voter], triangles: List[Dict], graph, representatives_per_district: int, seed: int
+        voters: List[Voter],
+        triangles: List[Dict],
+        graph,
+        representatives_per_district: int,
+        n_iterations: int,
+        gerrymander_for: int,
+        seed: int
 ) -> List[Polygon]:
     n_districts = int(81. / representatives_per_district * 3.)
-    districts = get_districts_from_triangles(voters, triangles, graph, n_districts, seed)
+    districts = get_districts_from_triangles(
+        voters,
+        representatives_per_district,
+        triangles,
+        graph,
+        n_districts,
+        n_iterations,
+        gerrymander_for,
+        seed
+    )
     return districts

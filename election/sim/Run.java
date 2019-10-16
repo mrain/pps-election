@@ -71,6 +71,7 @@ public class Run {
 //        System.err.println(LB + " " + UB);
         for (int i = 0; i < districts.size(); ++ i) {
             Polygon2D district = districts.get(i);
+//             Log.record(i.toString());
             if (district.area() < 1e-7)
                 throw new IllegalArgumentException("District cannot have empty area: " + district.toString());
             if (!board.contains(district)) {

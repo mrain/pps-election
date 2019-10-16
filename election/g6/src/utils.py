@@ -40,6 +40,14 @@ def count_population_in_polygon(voters: List[Voter], polygon) -> int:
     return count
 
 
+def check_if_node_is_near_part_boundary(graph, node: int) -> bool:
+    part = graph.nodes[node]['part']
+    for n in graph.neighbors(node):
+        if graph.nodes[n]['part'] != part:
+            return True
+    return False
+
+
 def get_population_in_polygons(voters: List[Voter], polygons: List[Polygon]) -> List[int]:
     # Sort the population according to x into two array
     voters_by_x = sorted(voters, key=lambda x: x.location.x)
