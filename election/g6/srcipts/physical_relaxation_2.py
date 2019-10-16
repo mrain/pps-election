@@ -21,20 +21,29 @@ from election.g6.src.plothelper import draw_voters as plot_voters
 from election.g6.src.utils import get_population_in_polygons_basic, get_population_in_polygons
 
 map_path = "maps/g7/2party.map"
-num_levels = 9
 
+# load the map
+m = Map.from_file(map_path)
+voters = m.voters
+random.seed(1234)
+sampled_voters = random.sample(voters, 6666)
+
+num_levels = 9
 partition = naive_partition(num_levels, True)
 
 window = pyglet.window.Window(1280, 980, vsync=False)
 options = DrawOptions()
 
 space = pymunk.Space()
-
 space.gravity = 0, 0
 space.damping = .9
 
-bs_to_triangle = {} # maps reach body shape points to triangles it is connected to
-triangle_coord_to_population = {} # Polygon is not hashable so I instead maps their coords to their population
+force_multiplier = 100000  # multiplier for population attraction force
+circle_radius = 3
+thickness = 5  # edge thickness
+
+bs_to_triangle = {}  # maps reach body shape points to triangles it is connected to
+triangle_coord_to_population = {}  # Polygon is not hashable so I instead maps their coords to their population
 
 # Add points
 bs = []
@@ -46,38 +55,42 @@ for level, row in enumerate(partition):
         elif level == num_levels and (i == 0 or i == len(row) - 1):
             b = pymunk.Body(body_type=pymunk.Body.STATIC)
         else:
-            b = pymunk.Body(mass=10, moment=pymunk.inf, body_type=pymunk.Body.DYNAMIC)  # inf to disable rotation
+            b = pymunk.Body(mass=1, moment=pymunk.inf, body_type=pymunk.Body.DYNAMIC)  # inf to disable rotation
         b.position = point
 
-        s = pymunk.Circle(b, 3)  # @ parameter
+        s = pymunk.Circle(b, circle_radius)  # @ parameter
         space.add(b, s)
         curr.append(b)  # s
     bs.append(curr)
 
 # Add triangle edges
-thickness = 5  # @parameter
+distance = thickness + circle_radius
+p1 = (500, 500 * math.sqrt(3) - 2 * distance)  # top of triangle
+p2 = (distance * math.sqrt(3), distance)  # left bottom
+p3 = (1000 - distance * math.sqrt(3), distance)  # right bottom
+
 body = pymunk.Body(body_type=pymunk.Body.STATIC)
-l1 = pymunk.Segment(body, (10, 10), (500, 490 * math.sqrt(3)), thickness)
+l1 = pymunk.Segment(body, p1, p2, thickness)
 l1.friction = 0.0
 space.add(body, l1)
 
 body = pymunk.Body(body_type=pymunk.Body.STATIC)
-l2 = pymunk.Segment(body, (500, 490 * math.sqrt(3)), (990, 10), thickness)
+l2 = pymunk.Segment(body, p2, p3, thickness)
 l2.friction = 0.0
 space.add(body, l2)
 
 body = pymunk.Body(body_type=pymunk.Body.STATIC)
-l3 = pymunk.Segment(body, (10, 10), (990, 10), thickness)
+l3 = pymunk.Segment(body, p1, p3, thickness)
 l3.friction = 0.0
 space.add(body, l3)
 
 
 def add_joint(a, b):
     rl = a.position.get_distance(b.position) * 1.0  # @parameter
-    stiffness = 200.  # @parameter
-    damping = 450.  # @parameter
+    stiffness = 8.  # @parameter
+    damping = 225.  # @parameter
     j = pymunk.DampedSpring(a, b, (0, 0), (0, 0), rl, stiffness, damping)
-    j.max_bias = 1000  # @parameter
+    # j.max_bias = 1000  # @parameter
     # j.max_force = 50000
     space.add(j)
 
@@ -90,12 +103,6 @@ for i in range(len(bs) - 1):
         add_joint(curr_level[j], next_level[j])
         add_joint(curr_level[j], next_level[j + 1])
         add_joint(next_level[j], next_level[j + 1])
-
-# load the map
-m = Map.from_file(map_path)
-voters = m.voters
-random.seed(1234)
-sampled_voters = random.sample(voters, 6666)
 
 
 def draw_voters(voters):
@@ -143,6 +150,7 @@ def get_triangles_from_body(bs):
         triangles.append(polygon)
     return triangles
 
+
 # merge the points in the simulator into shapely triangles and update the
 # map that maps the points to triangles that contain the point
 def get_triangles_and_update(bs):
@@ -189,6 +197,7 @@ def recalculate(voters):
             coord = tuple(triangle.exterior.coords)
             triangle_coord_to_population[coord] = population
 
+
 def apply_force(n):
     global force_multiplier
     for level in bs:
@@ -200,15 +209,32 @@ def apply_force(n):
                 centroid = triangle.centroid
                 coord = tuple(triangle.exterior.coords)
                 x, y = centroid.x, centroid.y
-                multiplier = 120000 * triangle_coord_to_population[coord] / n  # @parameter
+                multiplier = force_multiplier * triangle_coord_to_population[coord] / n  # @parameter
                 force = (multiplier * (x - bx), multiplier * (y - by))
                 body.apply_force_at_local_point(force, (0, 0))
+
+
+def save_triangles_to_file(triangles, file="saved_triangles.dat"):
+    with open(file, 'w') as f:
+        for triangle in triangles:
+            coords = list(triangle.exterior.coords)
+            temp = []
+            for coord in coords[:3]:
+                temp.append(coord[0])
+                temp.append(coord[1])
+            temp = [str(x) for x in temp]
+            line = " ".join(temp) + '\n'
+            f.write(line)
+    print("File Saved")
+
 
 ### ALL SETUP DONE
 
 recalculate(sampled_voters)
 
 count = 1
+
+
 def update(dt):
     # Note that we dont use dt as input into step. That is because the
     # simulation will behave much better if the step size doesnt change
@@ -216,7 +242,7 @@ def update(dt):
     # space.step(dt / 10)
     global count
     count += 1
-    if count % 10 == 0:
+    if count % 10 == 0:  # @parameter
         recalculate(sampled_voters)
     apply_force(len(sampled_voters))
     r = 10
@@ -280,6 +306,10 @@ def on_key_press(symbol, modifiers):
         bs[4][2].apply_impulse_at_world_point((0, -10000), (0, 0))
     if symbol == pyglet.window.key.R:
         recalculate(sampled_voters)
+    if symbol == pyglet.window.key.S:
+        triangles = get_triangles_from_body(bs)
+        save_triangles_to_file(triangles)
+
 
 @window.event
 def on_draw():
