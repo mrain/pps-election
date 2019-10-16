@@ -17,7 +17,6 @@ from pymunk.pyglet_util import DrawOptions
 from shapely.geometry import Polygon
 
 from election.g6.src.trianglegenerator import naive_partition
-from election.g6.src.plothelper import draw_voters as plot_voters
 from election.g6.src.utils import get_population_in_polygons_basic, get_population_in_polygons, save_triangles_to_file
 
 map_path = "maps/g7/2party.map"
@@ -28,6 +27,8 @@ voters = m.voters
 random.seed(1234)
 sampled_voters = random.sample(voters, 6666)
 
+
+# ALL THE PARAMETERS
 num_levels = 9
 partition = naive_partition(num_levels, True)
 
@@ -40,7 +41,14 @@ space.damping = .9
 
 force_multiplier = 100000  # multiplier for population attraction force
 circle_radius = 3
+circle_mass = .5
 thickness = 5  # edge thickness
+
+spring_stiffness = 4.
+spring_damping_factor = 215.
+spring_max_force = pymunk.inf
+
+additional_splits = 1
 
 bs_to_triangle = {}  # maps reach body shape points to triangles it is connected to
 triangle_coord_to_population = {}  # Polygon is not hashable so I instead maps their coords to their population
@@ -55,7 +63,7 @@ for level, row in enumerate(partition):
         elif level == num_levels and (i == 0 or i == len(row) - 1):
             b = pymunk.Body(body_type=pymunk.Body.STATIC)
         else:
-            b = pymunk.Body(mass=1, moment=pymunk.inf, body_type=pymunk.Body.DYNAMIC)  # inf to disable rotation
+            b = pymunk.Body(mass=circle_mass, moment=pymunk.inf, body_type=pymunk.Body.DYNAMIC)  # inf to disable rotation
         b.position = point
 
         s = pymunk.Circle(b, circle_radius)  # @ parameter
@@ -86,12 +94,15 @@ space.add(body, l3)
 
 
 def add_joint(a, b):
+    global spring_stiffness
+    global spring_damping_factor
+    global spring_max_force
     rl = a.position.get_distance(b.position) * 1.0  # @parameter
-    stiffness = 8.  # @parameter
-    damping = 225.  # @parameter
+    stiffness = spring_stiffness / (9 / num_levels)
+    damping = spring_damping_factor
     j = pymunk.DampedSpring(a, b, (0, 0), (0, 0), rl, stiffness, damping)
     # j.max_bias = 1000  # @parameter
-    # j.max_force = 50000
+    j.max_force = spring_max_force
     space.add(j)
 
 
@@ -189,15 +200,15 @@ def recalculate(voters):
     global bs_to_triangle
     global triangle_coord_to_population
     triangle_coord_to_population = {}
-    n = len(voters)
-    if recalculate:
-        triangles = get_triangles_and_update(bs)
-        populations = get_population_in_polygons(voters, triangles)
-        for triangle, population in zip(triangles, populations):
-            coord = tuple(triangle.exterior.coords)
-            triangle_coord_to_population[coord] = population
+
+    triangles = get_triangles_and_update(bs)
+    populations = get_population_in_polygons(voters, triangles)
+    for triangle, population in zip(triangles, populations):
+        coord = tuple(triangle.exterior.coords)
+        triangle_coord_to_population[coord] = population
 
 
+# TODO: try apply force vertically to the springs themselves, instead of points
 def apply_force(n):
     global force_multiplier
     for level in bs:
@@ -214,12 +225,14 @@ def apply_force(n):
                 body.apply_force_at_local_point(force, (0, 0))
 
 
+recalculate(sampled_voters)
+if additional_splits > 0:
+    pass
+
 ### ALL SETUP DONE
 
-recalculate(sampled_voters)
 
 count = 1
-
 
 def update(dt):
     # Note that we dont use dt as input into step. That is because the
@@ -228,7 +241,7 @@ def update(dt):
     # space.step(dt / 10)
     global count
     count += 1
-    if count % 10 == 0:  # @parameter
+    if count % 15 == 0:  # @parameter
         recalculate(sampled_voters)
     apply_force(len(sampled_voters))
     r = 10
@@ -272,8 +285,6 @@ def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
 
 @window.event
 def on_key_press(symbol, modifiers):
-    if symbol == pyglet.window.key.P:
-        plot_voters(sampled_voters, True)
     if symbol == pyglet.window.key.D:
         for voter in sampled_voters:
             print(voter.location.x, voter.location.y)
