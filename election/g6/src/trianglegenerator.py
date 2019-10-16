@@ -19,7 +19,7 @@ def get_voters_in_polygon(polygon: Polygon, voters: List[Voter]) -> List[Voter]:
     return list(filter(lambda x: is_in_polygon(x, polygon), voters))
 
 
-def naive_partition(n: int) -> List[Polygon]:
+def naive_partition(n: int, return_points=False) -> List[Polygon]:
     edge_length = 1000 / n
     x_diff = 1 / 2 * edge_length
     y_diff = math.sqrt(3) / 2 * edge_length
@@ -32,6 +32,9 @@ def naive_partition(n: int) -> List[Polygon]:
         new_point = (point[0] + x_diff, point[1] - y_diff)
         new_level.append(new_point)
         points_by_level.append(new_level)
+
+    if return_points:
+        return points_by_level
 
     result = []
     for level in range(n):
