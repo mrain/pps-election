@@ -215,7 +215,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     
     // For testing purposes, since the generator times out when applying KMeans
     public static void main(String[] args) {
-    	String mapPath = "maps/g3/g3Oct7ThreeParty.map";
+    	String mapPath = "maps/g3/g1TwoPartyTurkey.map";
     	List<Voter> voters = null;
 		try {
 			voters = obtainVoters(mapPath);
@@ -235,6 +235,11 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         List<NewPoint> centroids = new ArrayList<>();
         for(Cluster cluster : clusters) {
         	centroids.add(cluster.getCentroid());
+        }
+        int numCentroid = 1;
+        for(NewPoint centroid : centroids) {
+        	System.out.println("Centroid for cluster " + numCentroid + ": (" + centroid.getX() + ", " + centroid.getY() + ")");
+        	numCentroid++;
         }
         Voronoi voronoi = new Voronoi(voters, centroids);
         voronoi.execute();
