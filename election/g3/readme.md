@@ -9,3 +9,7 @@ useful as a baseline.
 
 The generator also prints the total of wasted votes for each party based on the
 generated districts.
+
+##Initial comparison between 3 representative per district and 1 representative per district schemes
+See [maps.g3.gerryMandered](../../maps/g3/gerryMandered) for our comparison analysis of the
+gerrymandering process with two maps, one with 3 parties and one with 2 parties.
