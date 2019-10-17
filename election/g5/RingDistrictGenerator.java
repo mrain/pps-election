@@ -31,12 +31,22 @@ public class RingDistrictGenerator implements DistrictGenerator {
     }
 
     /*
-     * Splits the map into 5 concentric triangles, and returns the position of their top vertices.
-     * The most inner triangle contains 1 district, and each outer triangle contains 20 districts.
+     * Splits the map into 5 (if repPerDistrict=3) or 12 (if repPerDistrict=1) concentric triangles;
+     * returns the position of their top vertices.
+     * The most inner triangle contains 1 district, and each outer triangle contains 20/22 districts.
      */
-    public List<Point2D> getConcentricTriangleTips(List <Voter> voters)
+    public List<Point2D> getConcentricTriangleTips(List <Voter> voters, int repPerDistrict)
     {
         numVoters = voters.size();
+
+        int numTriangles;
+        if (repPerDistrict == 1)
+            numTriangles = 12;
+        else if (repPerDistrict == 3)
+            numTriangles = 5;
+        else
+            return null;
+
         List<Point2D> triTips = new ArrayList<Point2D>();
         List<Polygon2D> triangles = new ArrayList<Polygon2D>();
         final double centerX = 500;
@@ -79,11 +89,11 @@ public class RingDistrictGenerator implements DistrictGenerator {
         triangles.add(innerTriangle);
         triTips.add(new Point2D.Double(topX, topY));
 
-        // Draw 3 more triangles around it, each with 20 districts
+        // Draw numTriangles-1 more triangles around it, each with 20/22 districts
         Polygon2D triangle;
         int voterCount;
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < numTriangles - 2; i++) {
             do {
                 distFromCenter += step;
 
@@ -102,7 +112,7 @@ public class RingDistrictGenerator implements DistrictGenerator {
 
                 voterCount = Run.countInclusion(voters, triangle);
                 System.out.println(topY);
-            } while (needsMoreVoters(voterCount - innerVoterCount, 20));
+            } while (needsMoreVoters(voterCount - innerVoterCount, numTriangles == 3 ? 20:22));
             System.out.println("found an outer triangle");
             System.out.println(voterCount - innerVoterCount);
 
@@ -363,8 +373,8 @@ public class RingDistrictGenerator implements DistrictGenerator {
 			return perimeter/area;
 	}
 
-	private Double compactGerry(List<Voter> voters) {
-			List<Point2D> vertices = getConcentricTriangleTips(voters);
+	private Double compactGerry(List<Voter> voters, int repPerDistrict) {
+			List<Point2D> vertices = getConcentricTriangleTips(voters, repPerDistrict);
 			List<Polygon2D> districts = getAllDistrict(voters, vertices);
 			List<Double> comp = new ArrayList<Double>();
 			double total = 0;
@@ -426,7 +436,7 @@ public class RingDistrictGenerator implements DistrictGenerator {
 
       // 81 Districts
       if (repPerDistrict == 3) {
-      		List<Point2D> vertices = getConcentricTriangleTips(voters);
+      		List<Point2D> vertices = getConcentricTriangleTips(voters, repPerDistrict);
 					List<Polygon2D> districts = getAllDistrict(voters, vertices);
 					// for (Polygon2D district : districts) {
 					// 		System.out.println(efficiencyGap(voters, district, repPerDistrict));
