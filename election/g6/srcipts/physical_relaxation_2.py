@@ -26,7 +26,6 @@ voters = m.voters
 random.seed(1234)
 sampled_voters = random.sample(voters, 6666)
 
-
 # ALL THE PARAMETERS
 num_levels = 9
 partition = naive_partition(num_levels, True)
@@ -47,12 +46,11 @@ spring_stiffness = 3.
 spring_damping_factor = 215.
 spring_max_force = pymunk.inf
 
-additional_splits = 1
-additional_bs = []
+additional_splits = 1  # splits how many most populated triangles into three
+# additional_bs = []
 
 bs_to_triangle = {}  # maps each body points to triangles it is connected to
 triangle_coord_to_population = {}  # Polygon is not hashable so I instead maps their coords to their population
-
 
 # Add triangle edges
 distance = thickness + circle_radius
@@ -75,7 +73,6 @@ l3 = pymunk.Segment(body, p1, p3, thickness)
 l3.friction = 0.0
 space.add(body, l3)
 
-
 # Add points
 bs = []
 for level, row in enumerate(partition):
@@ -86,7 +83,8 @@ for level, row in enumerate(partition):
         elif level == num_levels and (i == 0 or i == len(row) - 1):
             b = pymunk.Body(body_type=pymunk.Body.STATIC)
         else:
-            b = pymunk.Body(mass=circle_mass, moment=pymunk.inf, body_type=pymunk.Body.DYNAMIC)  # inf to disable rotation
+            b = pymunk.Body(mass=circle_mass, moment=pymunk.inf,
+                            body_type=pymunk.Body.DYNAMIC)  # inf to disable rotation
         b.position = point
 
         s = pymunk.Circle(b, circle_radius)  # @ parameter
@@ -196,6 +194,33 @@ def get_triangles_and_update(bs):
     return triangles
 
 
+def further_triangulate(triangles):
+    global additional_splits
+    global voters
+    global sampled_voters
+    if additional_splits <= 0:
+        return triangles
+
+    def split(triangle):  # TODO: better centroid
+        centroid = (triangle.centroid.x, triangle.centroid.y)
+        temp = list(triangle.exterior.coords)
+        p1, p2, p3 = temp[0], temp[1], temp[2]
+        new_triangle1 = Polygon([p1, p2, centroid])
+        new_triangle2 = Polygon([p1, p3, centroid])
+        new_triangle3 = Polygon([p2, p3, centroid])
+        return [new_triangle1, new_triangle2, new_triangle3]
+
+    populations = get_population_in_polygons(sampled_voters, triangles)
+    temp = list(zip(triangles, populations))
+    temp.sort(key=lambda x: x[1], reverse=True)  # sort by population
+    triangles, _ = zip(*temp)
+    new_triangles = []
+    for i in range(additional_splits):
+        new_triangles += split(triangles[i])
+    new_triangles += triangles[additional_splits:]
+    return new_triangles
+
+
 # recalculate the population in each triangle
 def recalculate(voters):
     global bs
@@ -236,6 +261,7 @@ if additional_splits > 0:
 
 
 count = 1
+
 
 def update(dt):
     # Note that we dont use dt as input into step. That is because the
@@ -308,6 +334,7 @@ def on_key_press(symbol, modifiers):
         recalculate(sampled_voters)
     if symbol == pyglet.window.key.S:
         triangles = get_triangles_from_body(bs)
+        triangles = further_triangulate(triangles)
         save_triangles_to_file(triangles)
 
 
