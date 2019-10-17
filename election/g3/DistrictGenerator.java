@@ -405,6 +405,11 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         for (Cluster cluster : clusters) {
             centroids.add(cluster.getCentroid());
         }
+        int numCentroid = 1;
+        for(NewPoint centroid : centroids) {
+        	System.out.println("Centroid for cluster " + numCentroid + ": (" + centroid.getX() + ", " + centroid.getY() + ")");
+        	numCentroid++;
+        }
         Voronoi voronoi = new Voronoi(voters, centroids);
         voronoi.execute();
         voronoi.print();
