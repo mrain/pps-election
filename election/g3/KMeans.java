@@ -39,7 +39,6 @@ public class KMeans {
     public void execute() {
     	init();
     	calculate();
-//    	evenlyDistributeClusters();
     }
     
     // Initialize the process
@@ -125,24 +124,13 @@ public class KMeans {
     		min = max;
     		for(int i = 0; i < numClusters; i++) {
     			Cluster c = clusters.get(i);
-    			if(c.getVoters().size() > minimumPopulation)
-    				continue;
     			distance = NewPoint.distance(point, c.getCentroid());
     			if(distance < min) {
     				min = distance;
     				cluster = i;
     			}
     		}
-
-    		if(cluster != -1)
-    			clusters.get(cluster).addVoter(voter);
-//    		else {
-//    			for(int i = 0; i < numClusters; i++) {
-//    				Cluster c = clusters.get(i);
-//    				if(c.getVoters().size() < maximumPopulation)
-//    					clusters.get(i).addVoter(voter);
-//    			}
-//    		}
+			clusters.get(cluster).addVoter(voter);
     	}
     }
     
