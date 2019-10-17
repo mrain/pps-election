@@ -51,7 +51,7 @@ To the path of any map you wish to load.
 After running the script, a pyglet window will pop up to visualize the process of the triangulation.
 If you think the triangulation is good enough. Press S will save the triangles file to
 ```
-election/saved_triangles.dat
+election/g6/saved_triangles.dat
 ```
 
 #### Triangles to graph
