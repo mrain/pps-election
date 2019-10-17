@@ -27,7 +27,31 @@ To generate districts, you have to go through three steps:
 2. Triangles to graph
 3. District generation
 
-#### Triangulation
+
+### Triangulation with physics simulation
+
+To run the simulator for physical triangulation, please run from pps-election folder root:
+And please make sure you have the following libraries installed:
+
+pymunk==5.5.0
+pyglet==1.4.5
+shapely>=1.6.4
+
+```bash
+python3.7 election/g6/srcipts/physical_relaxation_2.py
+```
+
+If you wish to load different maps, please open the file and change the variable:
+```python
+map_path = "maps/g7/2party.map"
+```
+To the path of any map you wish to load.
+
+After running the script, a pyglet window will pop up to visualize the process of the triangulation.
+If you think the triangulation is good enough. Press S will save the triangles file to
+```
+election/"saved_triangles.dat"
+```
 
 #### Triangles to graph
 
