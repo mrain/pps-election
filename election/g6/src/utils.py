@@ -120,7 +120,7 @@ def is_in_polygon(voter: Voter, polygon: Polygon) -> bool:
     return polygon.contains(voter.location)
 
 
-def save_triangles_to_file(triangles, file="saved_triangles.dat"):
+def save_triangles_to_file(triangles, file="g6/saved_triangles.dat"):
     with open(file, 'w') as f:
         for triangle in triangles:
             coords = list(triangle.exterior.coords)
@@ -134,7 +134,7 @@ def save_triangles_to_file(triangles, file="saved_triangles.dat"):
     print("File Saved")
 
 
-def read_triangles_from_file(file="saved_triangles.dat"):
+def read_triangles_from_file(file="g6/saved_triangles.dat"):
     triangles = []
     with open(file, 'r') as f:
         for line in f:
