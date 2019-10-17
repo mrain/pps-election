@@ -1,92 +1,50 @@
+#Initial Gerrymandering Analysis
+
 Comparing Representative Schemes for two different maps (one with 3 parties and one with 2 parties)
 Used Wasted votes to guide the district definition and Gerrymandered for each party to see how the results deviate from the number of seats expected based only on vote preference.
 
-g9ThreePartySriLanka.map
-Expected number of seat based on voter preference alone
-Party 0: 156.25
-Party 1: 68.49
-Party 2: 18.24
+##g9ThreePartySriLanka.map
 
-3Rep
-Gerrymandered for party 0 (deeper search)
-Wasted votes per party:
-Party 0: 214317
-Party 1: 93961
-Party 2: 25033
-Seats: 174 54 17
+###3 Representatives per District
+| Configuration | Party 1 | Party 2 | Party 3 |
+| ------------- |---------|---------|---------|
+| Num. Seats expected based on voter preference alone | 156.25 | 68.49 | 18.24 |
+| Favoring Party 1 (wasted votes) | 214317 | 93961 | 25033 |
+| Favoring Party 1 (obtained seats) | 174 | 54 | 17 |
+| Favoring Party 2 (wasted votes) | 214335 | 93945 | 25034 |
+| Favoring Party 2 (obtained seats) | 168 | 58 | 17 |
+| Favoring Party 3 (wasted votes) | 214334 | 93964 | 25022 |
+| Favoring Party 3 (obtained seats) | 166 | 57 | 20 |
 
-Gerrymandered for party 0
-Wasted votes per party:
-Party 0: 214326
-Party 1: 93964
-Party 2: 25031
+###1 Representatives per District
 
-Gerrymandered for party 1
-Wasted votes per party:
-Party 0: 214335
-Party 1: 93945
-Party 2: 25034
-Seats: 168 58 17
-
-Gerrymandered for party 2
-Wasted votes per party:
-Party 0: 214334
-Party 1: 93964
-Party 2: 25022
-Seats: 166 57 20
-
-1Rep
-Gerrymandered for party 0
-Wasted votes per party:
-Party 0: 147643
-Party 1: 87892
-Party 2: 22146
-Seats: 201 32 10
-
-Gerrymandered for party 1
-Wasted votes per party:
-Party 0: 185439
-Party 1: 59088
-Party 2: 17783
-Seats: 149 74 20
-
-Gerrymandered for party 2
-Wasted votes per party:
-Party 0: 174332
-Party 1: 78556
-Party 2: 10058
-Seats: 165 49 29
+| Configuration | Party 1 | Party 2 | Party 3 |
+| ------------- |---------|---------|---------|
+| Num. Seats expected based on voter preference alone | 156.25 | 68.49 | 18.24 |
+| Favoring Party 1 (wasted votes) | 147643 | 87892 | 22146 |
+| Favoring Party 1 (obtained seats) | 201 | 32 | 10 |
+| Favoring Party 2 (wasted votes) | 185439 | 59088 | 17783 |
+| Favoring Party 2 (obtained seats) | 149 | 74 | 20 |
+| Favoring Party 3 (wasted votes) | 174332 | 78556 | 10058 |
+| Favoring Party 3 (obtained seats) | 165 | 49 | 29 |
 
 
+##g1TwoPartyTurkey.map
 
-g1TwoPartyTurkey.map
-Expected number of seat based on voter preference alone
-Party 0: 126.18
-Party 1: 116.81
+###3 Representatives per District
+| Configuration | Party 1 | Party 2 |
+| ------------- |---------|---------|
+| Num. Seats expected based on voter preference alone | 126.18 | 116.81 |
+| Favoring Party 1 (wasted votes) | 173077 | 160236 |
+| Favoring Party 1 (obtained seats) | 136 | 107 |
+| Favoring Party 2 (wasted votes) | 173096 | 160216 |
+| Favoring Party 2 (obtained seats) | 133 | 110 |
 
-3Rep
-Gerrymandered for party 0
-Wasted votes per party:
-Party 0: 173077
-Party 1: 160236
-Seats: 136 107
-
-Gerrymandered for party 1
-Wasted votes per party:
-Party 0: 173096
-Party 1: 160216
-Seats: 133 110
-
-1Rep
-Gerrymandered for party 0
-Wasted votes per party:
-Party 0: 172982
-Party 1: 160232
-Seats 172 71
-
-Gerrymandered for party 1
-Wasted votes per party:
-Party 0: 173083
-Party 1: 160167
-Seats 143 100
-
+###1 Representatives per District
+| Configuration | Party 1 | Party 2 |
+| ------------- |---------|---------|
+| Num. Seats expected based on voter preference alone | 126.18 | 116.81 |
+| Favoring Party 1 (wasted votes) | 172982 | 160232 |
+| Favoring Party 1 (obtained seats) | 172 | 71 |
+| Favoring Party 2 (wasted votes) | 173083 | 160167 |
+| Favoring Party 2 (obtained seats) | 143 | 100 |
