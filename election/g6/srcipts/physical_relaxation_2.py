@@ -1,5 +1,4 @@
-"""Showcase of a elastic spiderweb (drawing with pyglet)
-
+"""
 It is possible to grab one of the crossings with the mouse
 """
 __version__ = "$Id:$"
@@ -14,7 +13,7 @@ import pymunk
 from pymunk.vec2d import Vec2d
 from pymunk.pyglet_util import DrawOptions
 
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point
 
 from election.g6.src.trianglegenerator import naive_partition
 from election.g6.src.utils import get_population_in_polygons_basic, get_population_in_polygons, save_triangles_to_file
@@ -40,36 +39,20 @@ space.gravity = 0, 0
 space.damping = .9
 
 force_multiplier = 100000  # multiplier for population attraction force
-circle_radius = 3
+circle_radius = 2
 circle_mass = .5
 thickness = 5  # edge thickness
 
-spring_stiffness = 4.
+spring_stiffness = 3.
 spring_damping_factor = 215.
 spring_max_force = pymunk.inf
 
 additional_splits = 1
+additional_bs = []
 
-bs_to_triangle = {}  # maps reach body shape points to triangles it is connected to
+bs_to_triangle = {}  # maps each body points to triangles it is connected to
 triangle_coord_to_population = {}  # Polygon is not hashable so I instead maps their coords to their population
 
-# Add points
-bs = []
-for level, row in enumerate(partition):
-    curr = []
-    for i, point in enumerate(row):
-        if level == 0:
-            b = pymunk.Body(body_type=pymunk.Body.STATIC)
-        elif level == num_levels and (i == 0 or i == len(row) - 1):
-            b = pymunk.Body(body_type=pymunk.Body.STATIC)
-        else:
-            b = pymunk.Body(mass=circle_mass, moment=pymunk.inf, body_type=pymunk.Body.DYNAMIC)  # inf to disable rotation
-        b.position = point
-
-        s = pymunk.Circle(b, circle_radius)  # @ parameter
-        space.add(b, s)
-        curr.append(b)  # s
-    bs.append(curr)
 
 # Add triangle edges
 distance = thickness + circle_radius
@@ -91,6 +74,25 @@ body = pymunk.Body(body_type=pymunk.Body.STATIC)
 l3 = pymunk.Segment(body, p1, p3, thickness)
 l3.friction = 0.0
 space.add(body, l3)
+
+
+# Add points
+bs = []
+for level, row in enumerate(partition):
+    curr = []
+    for i, point in enumerate(row):
+        if level == 0:
+            b = pymunk.Body(body_type=pymunk.Body.STATIC)
+        elif level == num_levels and (i == 0 or i == len(row) - 1):
+            b = pymunk.Body(body_type=pymunk.Body.STATIC)
+        else:
+            b = pymunk.Body(mass=circle_mass, moment=pymunk.inf, body_type=pymunk.Body.DYNAMIC)  # inf to disable rotation
+        b.position = point
+
+        s = pymunk.Circle(b, circle_radius)  # @ parameter
+        space.add(b, s)
+        curr.append(b)  # s
+    bs.append(curr)
 
 
 def add_joint(a, b):
@@ -226,6 +228,7 @@ def apply_force(n):
 
 
 recalculate(sampled_voters)
+
 if additional_splits > 0:
     pass
 
