@@ -28,7 +28,7 @@ To generate districts, you have to go through three steps:
 3. District generation
 
 
-### Triangulation with physics simulation
+#### Triangulation with physics simulation
 
 To run the simulator for physical triangulation, please run from pps-election folder root \
 And please make sure you have the following libraries installed: 
