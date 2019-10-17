@@ -13,12 +13,15 @@ WINNER_TAKE_ALL = False
 NUM_VOTERS = 33333
 RANDOM_SEED = 1992
 NUM_REBALANCE = 100
-LOAD_CLUSTERS = False
+LOAD_CLUSTERS = True
 BASIC_KMEANS = True
+POPULATION_BOUNDS = 0.1
+TARGET_INIT_POPULATION_BOUNDS = 0.025
+
 np.random.seed(RANDOM_SEED)
 
 
-def BalancedClustering_Method1(k, cluster_centroids, points):
+def BalancedClustering(k, cluster_centroids, points):
     X = points.copy()
     cluster_centers = cluster_centroids.copy()
 
@@ -183,14 +186,18 @@ def sample_vote(pref):
     return np.random.binomial(size=1, n=1, p=pref[1])[0]
 
 
-def is_valid_draw(new_districts, voters):
+def is_valid_draw(new_districts, voters, is_gerry=True):
     district_voters = np.zeros([len(districts)])
     voters_by_district = defaultdict(list)
     last_districts = []
     N = float(len(voters))
     mean = N / float(len(new_districts))
-    lower = mean * 0.85
-    upper = mean * 1.15
+    if is_gerry:
+        lower = mean * (1.0 - POPULATION_BOUNDS)
+        upper = mean * (1.0 + POPULATION_BOUNDS)
+    else:
+        lower = mean * (1.0 - TARGET_INIT_POPULATION_BOUNDS)
+        upper = mean * (1.0 + TARGET_INIT_POPULATION_BOUNDS)
     for vidx, voter in enumerate(voters):
         district_idx = find_voter_district(new_districts, voter, last_districts)
         voters_by_district[district_idx].append(vidx)
@@ -220,6 +227,7 @@ def is_valid_draw(new_districts, voters):
         too_big_district_idxs = sorted_pop_idxs[too_big_breakpoint:]
 
     if len(too_small_district_idxs) + len(too_big_district_idxs) == 0:
+        print('Total Underflow / Overflow is {} / {} voters'.format(0, 0))
         return True, voters_by_district, 0
 
     underflow = lower - district_voters[too_small_district_idxs]
@@ -246,29 +254,27 @@ def find_closest(centroids, idx, n=2):
     return np.argsort(np.array(distances))[:n]
 
 
-def sample_new_district_centers(centroids, districts, voters, sample=True):
-    if sample:
-        new_centroids = np.zeros([len(centroids), 2])
-        for idx, (centroid, district) in enumerate(zip(centroids, districts)):
-            new_pt = sample_new_point(centroid[0], centroid[1], np.sqrt(district.area))
-            new_centroids[idx, :] = new_pt
-        new_districts = draw_districts(new_centroids)
-    else:
-        new_centroids = centroids
-        new_districts = districts
-    is_valid, voters_by_district, prev_total_overflow = is_valid_draw(new_districts, voters)
+def validate(centroids, districts, voters, is_gerry=True):
+    new_centroids = centroids
+    new_districts = districts
+    is_valid, voters_by_district, prev_total_overflow = is_valid_draw(new_districts, voters, is_gerry=is_gerry)
     iteration = 0
+
+    didx = np.random.choice(np.arange(len(centroids)))
+    denom = np.log(districts[didx].area) if is_gerry else 5.0
+
+    if is_gerry:
+        is_valid = False
+
     while not is_valid:
         centroid_candidates = new_centroids.copy()
-
-        NR = 1
-        for i in range(NR):
+        if not is_gerry:
             didx = np.random.choice(np.arange(len(centroid_candidates)))
-            centroid_candidates[didx][0] = centroid_candidates[didx][0] + np.random.normal(0, 5 / float(NR))
-            centroid_candidates[didx][1] = centroid_candidates[didx][1] + np.random.normal(0, 5 / float(NR))
+        centroid_candidates[didx][0] = centroid_candidates[didx][0] + np.random.normal(0, denom)
+        centroid_candidates[didx][1] = centroid_candidates[didx][1] + np.random.normal(0, denom)
 
         district_candidates = draw_districts(centroid_candidates)
-        is_valid, voters_by_district, total_flow = is_valid_draw(district_candidates, voters)
+        is_valid, voters_by_district, total_flow = is_valid_draw(district_candidates, voters, is_gerry=is_gerry)
         if total_flow <= prev_total_overflow:
             prev_total_overflow = total_flow
             new_districts = district_candidates
@@ -276,9 +282,9 @@ def sample_new_district_centers(centroids, districts, voters, sample=True):
         else:
             print('Tried unsuccessfully')
 
-        if total_flow < 25.0 and iteration > 1000:
+        if total_flow < 25.0 and iteration > 1000 and not is_gerry:
             print('Saving almost data!')
-            json.dump(new_centroids.tolist(), open('adjusted_data/almost_centroids.npy', 'w'))
+            json.dump(new_centroids.tolist(), open('adjusted_data/almost_centroids.json', 'w'))
             np.save(open('adjusted_data/almost_districts.npy', 'wb'), new_districts)
         iteration += 1
     return new_centroids, new_districts, voters_by_district
@@ -1158,7 +1164,7 @@ if __name__ == '__main__':
 
     if LOAD_CLUSTERS:
         print('Loading Clusters')
-        centroids = np.array(json.load(open('adjusted_data/centroids.json', 'r')))
+        centroids = np.array(json.load(open('adjusted_data/almost_centroids.json', 'r')))
     else:
         if BASIC_KMEANS:
             kmeans = MiniBatchKMeans(
@@ -1167,7 +1173,7 @@ if __name__ == '__main__':
             centroids = kmeans.cluster_centers_
             for i in range(NUM_REBALANCE):
                 print('Rebalancing cluster centers {}/{}'.format(str(i + 1), str(NUM_REBALANCE)))
-                centroids = BalancedClustering_Method1(ndist, centroids, V)
+                centroids = BalancedClustering(ndist, centroids, V)
         else:
             clf = EqualGroupsKMeans(n_clusters=ndist)
             clf.fit(V)
@@ -1180,12 +1186,14 @@ if __name__ == '__main__':
     districts = draw_districts(centroids)
 
     # Ensure valid
-    centroids, districts, _ = sample_new_district_centers(centroids, districts, voters, sample=False)
+    centroids, districts, _ = validate(centroids, districts, voters, is_gerry=False)
     json.dump(centroids.tolist(), open('adjusted_data/centroids.json', 'w'))
     np.save(open('adjusted_data/districts.npy', 'wb'), districts)
 
     # LOAD INITIAL DISTRICTS
     initial_districts = copy.deepcopy(districts)  # Keep a hardcopy of this
+
+    print('Starting evolutionary approach!')
 
     best_score = -1
     for mut_idx in range(1000):
@@ -1193,10 +1201,10 @@ if __name__ == '__main__':
         all_candidate_districts = []
         all_candidate_centroids = []
         gerrymander_scores = []
-        N = 100
+        N = 5
         for n in range(N):
-            candidate_centroids, candidate_districts, voters_by_district = sample_new_district_centers(
-                centroids, districts, voters)
+            candidate_centroids, candidate_districts, voters_by_district = validate(
+                centroids, districts, voters, is_gerry=True)
             all_candidate_districts.append(candidate_districts)
             all_candidate_centroids.append(candidate_centroids)
             gerrymander_score = asymmetry_score(candidate_districts, voters, voters_by_district)
