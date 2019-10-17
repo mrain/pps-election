@@ -54,8 +54,17 @@ def main(options):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input', '-i', type=str, default="maps/g6/saved_triangles.dat")
-    parser.add_argument('--input-map', '-im', type=str, default="maps/g1/randomg1_3.map")
-    parser.add_argument('--output', '-o', type=str, default="maps/g6/0_saved_triangles")
+    parser.add_argument(
+        '--input', '-i', type=str, default="maps/g6/saved_triangles.dat",
+        help='Path to triangles from physical simulation'
+    )
+    parser.add_argument(
+        '--input-map', '-im', type=str, default="maps/g1/randomg1_3.map",
+        help='Path to input map for which the triangles where generated'
+    )
+    parser.add_argument(
+        '--output', '-o', type=str, default="maps/g6/0_saved_triangles",
+        help='Path to where to save the pickle with graph and triangles'
+    )
     args = parser.parse_args()
     main(args)
