@@ -31,11 +31,11 @@ To generate districts, you have to go through three steps:
 ### Triangulation with physics simulation
 
 To run the simulator for physical triangulation, please run from pps-election folder root \
-And please make sure you have the following libraries installed: \
+And please make sure you have the following libraries installed: 
 
 pymunk==5.5.0 \
 pyglet==1.4.5 \
-shapely>=1.6.4 \
+shapely>=1.6.4 
 
 Run:
 ```bash
