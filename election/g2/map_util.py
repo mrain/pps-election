@@ -15,7 +15,7 @@ MAP_DIRS = os.path.abspath(os.path.join(BASE_DIR, "../../maps"))
 # - After `numVoters` lines, there shall be a line containing `0` only.
 
 def list_maps(map_dir=MAP_DIRS):
-    return glob.glob(MAP_DIRS+"/**/*.map", recursive=True)
+    return glob.glob(map_dir+"/**/*.map", recursive=True)
 
 def load_map(filename):
     return np.loadtxt(filename, skiprows=1, max_rows=333333)

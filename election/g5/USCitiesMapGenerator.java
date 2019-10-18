@@ -90,12 +90,25 @@ public class USCitiesMapGenerator implements election.sim.MapGenerator {
         System.out.println(triangle.toString());
         List<City> res = new ArrayList<City>();
         Point2D center = new Point2D.Double((leftCorner+rightCorner)/2, ((leftCorner+rightCorner)/2*Math.sqrt(3))/3);
+        List<Point2D> tri_points = triangle.getPoints();
+        double D = tri_points.get(0).distance(tri_points.get(1));
         for (City city : realCities) {
-            // TODO expand
+        		double rate = 1000.0/D;
             // expand(center, city, triangle);
-            res.add(shift(center, city, triangle));
+            res.add(expand(center, city, rate));
         }
         return res;
+    }
+    
+    private City expand(Point2D center, City city, double r) {
+    		City c = new City(new Point2D.Double(city.pos.x, city.pos.y));
+    		c.pos.x -= center.getX();
+    		c.pos.y -= center.getY();
+    		c.pos.x *= r;
+    		c.pos.y *= r;
+    		c.pos.x += center.getX();
+    		c.pos.y += center.getY();
+    		return c;
     }
 
     private City shift(Point2D center, City city, Polygon2D triangle) {
@@ -215,10 +228,13 @@ public class USCitiesMapGenerator implements election.sim.MapGenerator {
             for (City city : cities) {
                 double distToCity = city.getDist(pos);
                 if (distToCity < distToClosestCity) {
+            
                     distToClosestCity = distToCity;
                     closestCity = city;
                 }
+                
             }
+            System.out.println(closestCity);
 
             // The closer to the closest city, the higher the chance a voter is generated there
             if (random.nextDouble() > distToClosestCity/(random.nextGaussian()*50+100)) {

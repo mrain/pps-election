@@ -31,11 +31,13 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         List<District> disList = new ArrayList<District>();
         disList.add(initDistrict);
 
+        boolean last = false;
         for(int i = 0; i < r; i++) {
+            if(i == r - 1) last = true;
             List<District> temp = new ArrayList<District>();
             for(District d : disList) {
-                //temp.addAll(gerrySplit(d, d.voters.size()/3, repPerDistrict));
-                temp.addAll(splitTriangleDistrict(d, d.voters.size()/3));
+                temp.addAll(gerrySplit(d, d.voters.size()/3, repPerDistrict, last));
+                //temp.addAll(splitTriangleDistrict(d, d.voters.size()/3, i));
             }
             System.out.println(temp.size());
             disList = temp;
@@ -49,7 +51,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         return result;
     }
 
-    public List<District> gerrySplit(District startingDistrict, int repPerDistrict, int repNum){
+    public List<District> gerrySplit(District startingDistrict, int repPerDistrict, int repNum, boolean last){
         if (startingDistrict.polygon.size() != 3){
             throw new IllegalArgumentException("Not a triangle, can't split a " + startingDistrict.polygon.size() + " sided polygon. ");
         } else {
@@ -72,9 +74,9 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             District district3 = new District();
             Point2D mid1 = new Point2D.Double(0,0);
             
-            double diff = 1.;
+            double diff = 300. / ((double)(repNum + 1.) * 6);
             double i = 1.;
-            double dec = 1.;
+            double dec = diff/2.;
             boolean check = false;
             while (!valid){
                 if (point1.getX() > point2.getX()){
@@ -90,10 +92,10 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 polygon1.append(polygon.getPoints().get(2));
                 district1 = new District(polygon1, startingDistrict.voters, false);
 
-                polygon2.append(point2);
+                /*polygon2.append(point2);
                 polygon2.append(trialPoint);
                 polygon2.append(polygon.getPoints().get(2));
-                district2 = new District(polygon2, startingDistrict.voters, false);
+                district2 = new District(polygon2, startingDistrict.voters, false);*/
                 if (district1.voters.size() >= bottomThreshold && district1.voters.size() < topThreshold){
                     valid = true;
                     mid1 = trialPoint;
@@ -111,8 +113,8 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 }
             }
             valid = false;
-            diff = 1.;
-            dec = 1.;
+            diff = 300. / ((double)(repNum + 1.) * 6);
+            dec = 5.;
             check = false;
             while (!valid){
                 if (mid1.getX() > point2.getX()){
@@ -167,9 +169,9 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             district3 = new District();
             mid1 = new Point2D.Double(0,0);
             
-            diff = 1.;
+            diff = 300. / ((double)(repNum + 1.) * 6);
             i = 1.;
-            dec = 1.;
+            dec = diff/2.;
             check = false;
             while (!valid){
                 if (point1.getX() > point2.getX()){
@@ -185,10 +187,10 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 polygon1.append(polygon.getPoints().get(0));
                 district1 = new District(polygon1, startingDistrict.voters, false);
 
-                polygon2.append(point2);
+                /*polygon2.append(point2);
                 polygon2.append(trialPoint);
                 polygon2.append(polygon.getPoints().get(0));
-                district2 = new District(polygon2, startingDistrict.voters, false);
+                district2 = new District(polygon2, startingDistrict.voters, false);*/
                 if (district1.voters.size() >= bottomThreshold && district1.voters.size() < topThreshold){
                     valid = true;
                     mid1 = trialPoint;
@@ -207,8 +209,8 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 }
             }
             valid = false;
-            diff = 1.;
-            dec = 1.;
+            diff = 300. / ((double)(repNum + 1.) * 6);
+            dec = diff/2.;
             check = false;
             while (!valid){
                 if (mid1.getX() > point2.getX()){
@@ -263,9 +265,9 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             district3 = new District();
             mid1 = new Point2D.Double(0,0);
             
-            diff = 1.;
+            diff = 300. / ((double)(repNum + 1.) * 6);
             i = 1.;
-            dec = 1.;
+            dec = diff/2.;
             check = false;
             while (!valid){
                 if (point1.getX() > point2.getX()){
@@ -281,10 +283,10 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 polygon1.append(polygon.getPoints().get(1));
                 district1 = new District(polygon1, startingDistrict.voters, false);
 
-                polygon2.append(point2);
+                /*polygon2.append(point2);
                 polygon2.append(trialPoint);
                 polygon2.append(polygon.getPoints().get(1));
-                district2 = new District(polygon2, startingDistrict.voters, false);
+                district2 = new District(polygon2, startingDistrict.voters, false);*/
                 if (district1.voters.size() >= bottomThreshold && district1.voters.size() < topThreshold){
                     valid = true;
                     mid1 = trialPoint;
@@ -303,8 +305,8 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 }
             }
             valid = false;
-            diff = 1.;
-            dec = 1.;
+            diff = 300. / ((double)(repNum + 1.) * 6);
+            dec = diff/2;
             check = false;
             while (!valid){
                 if (mid1.getX() > point2.getX()){
@@ -348,41 +350,110 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 
             double[][] per = new double[3][3];
 
-            per[0] = getPercentages(districts[0]);
-            per[1] = getPercentages(districts[1]);
-            per[2] = getPercentages(districts[2]);
+            per[0] = getPercentages(districts[0], 0);
+            per[1] = getPercentages(districts[1], 0);
+            per[2] = getPercentages(districts[2], 0);
+
+            double[][] per1 = new double[3][3];
+
+            per1[0] = getPercentages(districts[0], 1);
+            per1[1] = getPercentages(districts[1], 1);
+            per1[2] = getPercentages(districts[2], 1);
+
+            double[][] per2 = new double[3][3];
+
+            per2[0] = getPercentages(districts[0], 2);
+            per2[1] = getPercentages(districts[1], 2);
+            per2[2] = getPercentages(districts[2], 2);
 
             int[] rep = new int[3];
             double[] waste = new double[3];
             getWaste(rep, waste, per, repNum);
 
-            //System.out.println(per[0][0] + ", " + per[0][1] + ", " + per[0][2]);
-            //System.out.println(per[1][0] + ", " + per[1][1] + ", " + per[1][2]);
-            //System.out.println(per[2][0] + ", " + per[2][1] + ", " + per[2][2]);
+            int[] rep1 = new int[3];
+            double[] waste1 = new double[3];
+            getWaste(rep1, waste1, per1, repNum);
 
-            if(rep[0] == rep[1] && rep[0] == rep[2]) {
-                return districts[getMinIndex(waste)];
-            }
+            int[] rep2 = new int[3];
+            double[] waste2 = new double[3];
+            getWaste(rep2, waste2, per2, repNum);
 
-            else if(rep[0] == rep[1] && rep[0] > rep[2]) {
-                if(waste[0] > waste[1]) return districts[1];
-                else return districts[0];
-            }
-
-            else if(rep[1] == rep[2] && rep[1] > rep[0]) {
-                if(waste[1] > waste[2]) return districts[2];
-                else return districts[1];
-            }
-
-            else if(rep[0] == rep[2] && rep[2] > rep[1]) {
-                if(waste[0] > waste[2]) return districts[2];
-                else return districts[0];
-            }
-
-            else {
-                return districts[getMaxIndex(rep)];
-            }
+            //return districts[getMaxRep(rep1, waste1)];
+            //if(!last) return districts[getMaxPer(per, per2)];
+            //else return districts[getMaxRep(rep1, waste1)];
+            //return districts[getMaxEfficiency(waste1, waste2, waste)];
+            //return districts[getMinWaste(waste1)];
+            //return districts[getMaxWaste(waste, waste2)];
+            if(!last) return districts[getGreedy(rep1, rep2, rep, waste1, per, per2)];
+            else return districts[getMaxRep(rep1, waste1)];
         }
+    }
+
+    public int getGreedy(int[] rep1, int[] rep2, int[] rep, double[] waste1, double[][] per, double[][] per2) {
+        for(int i = 0; i < 3; i++) {
+            int temp = rep1[i];
+            if(temp > rep2[i] && temp > rep[i]) return getMaxRep(rep1, waste1);
+        }
+        System.out.println("Not the biggest");
+        return getMaxPer(per, per2);
+    }
+
+    public int getMaxRep(int[] rep, double[] waste) {
+        if(rep[0] == rep[1] && rep[0] == rep[2]) {
+            return getMinIndex(waste);
+        }
+
+        else if(rep[0] == rep[1] && rep[0] > rep[2]) {
+            if(waste[0] > waste[1]) return 1;
+            else return 0;
+        }
+
+        else if(rep[1] == rep[2] && rep[1] > rep[0]) {
+            if(waste[1] > waste[2]) return 2;
+            else return 1;
+        }
+
+        else if(rep[0] == rep[2] && rep[2] > rep[1]) {
+            if(waste[0] > waste[2]) return 2;
+            else return 0;
+        }
+
+        else {
+            return getMaxIndex(rep);
+        }
+    }
+
+    public int getMinWaste(double[] waste) {
+        return getMinIndex(waste);
+    }
+
+    public int getMaxWaste(double[] waste, double[] waste1) {
+        double[] totalWaste = new double[3];
+        for(int i = 0; i < 3; i++) {
+            totalWaste[i] = waste[i] + waste1[i];
+        }
+
+        return getMaxIndex(totalWaste);
+    }
+
+    public int getMaxEfficiency(double[] our, double[] waste1, double[] waste2) {
+        double gap[] = new double[3];
+        for(int i = 0; i < 3; i++) {
+            gap[i] = our[i] - waste1[i] - waste2[i];
+        }
+        return getMaxIndex(gap);
+    }
+
+    public int getMaxPer(double[][] per, double[][] per2) {
+        double[] percent = new double[3];
+        for(int i = 0; i < 3; i++) {
+            percent[i] = per[0][i] + per2[0][i] + per[1][i] + per2[1][i] + per[2][i] + per2[2][i]; 
+        }
+
+        double max = 0;
+        int index = 0;
+
+        return getMaxIndex(percent);
     }
 
     public int getMinIndex(double[] waste) {
@@ -392,6 +463,19 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         for(int i = 0; i < 3; i++) {
             if(waste[i] < min) {
                 min = waste[i];
+                index = i;
+            }
+        }
+        return index;
+    }
+
+    public int getMaxIndex(double[] waste) {
+        double max = 0;
+        int index = 1;
+
+        for(int i = 0; i < 3; i++) {
+            if(waste[i] > max) {
+                max = waste[i];
                 index = i;
             }
         }
@@ -444,8 +528,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         }
     }
 
-    //Gets info for party1
-    public double[] getPercentages(List<District> districts) {
+    public double[] getPercentages(List<District> districts, int party) {
         int[][] count = new int[3][3];
         for(int i = 0 ; i < 3; i++) {
             List<Voter> voters = districts.get(i).voters;
@@ -464,25 +547,31 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 
         double[] total = new double[3];
         for(int i = 0; i < 3; i++) {
-            total[i] = Double.valueOf(count[i][0]) / Double.valueOf(districts.get(i).voters.size());
+            total[i] = Double.valueOf(count[i][party]) / Double.valueOf(districts.get(i).voters.size());
         }
 
         return total;
     }
 
-    public List<District> splitTriangleDistrict(District startingDistrict, int repPerDistrict){
+    public List<District> splitTriangleDistrict(District startingDistrict, int repPerDistrict, int edge){
         if (startingDistrict.polygon.size() != 3){
             throw new IllegalArgumentException("Not a triangle, can't split a " + startingDistrict.polygon.size() + " sided polygon. ");
         } else {
-            List<Integer> ran = new ArrayList<>();
-            ran.add(0);
-            ran.add(1);
-            ran.add(2);
-            Collections.shuffle(ran);
+            //List<Integer> ran = new ArrayList<>();
+            //ran.add(0);
+            //ran.add(1);
+            //ran.add(2);
+            //Collections.shuffle(ran);
             //pick a point on a line between the vertices of a triangle, then try to split into 2 districts. 
             Polygon2D polygon = startingDistrict.polygon;
-            Point2D point1 = polygon.getPoints().get(ran.get(0));
-            Point2D point2 = polygon.getPoints().get(ran.get(1));
+            Point2D[] points = new Point2D[3];
+            for(int i = 0; i < 3; i++) {
+            	points[i] = polygon.getPoints().get(i);
+            }
+
+            Point2D point1 = polygon.getPoints().get(edge % 3);
+            Point2D point2 = polygon.getPoints().get((edge+1) % 3);
+            Point2D point3 = polygon.getPoints().get((edge+2) % 3);
 
             List<District> districts = new ArrayList<District>();
             double slope = (point1.getY() - point2.getY()) / (point1.getX() - point2.getX());
@@ -511,13 +600,13 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 Polygon2D polygon2 = new Polygon2D();
                 polygon1.append(point1);
                 polygon1.append(trialPoint);
-                polygon1.append(polygon.getPoints().get(ran.get(2)));
+                polygon1.append(point3);
                 district1 = new District(polygon1, startingDistrict.voters, false);
 
+                /*polygon2.append(trialPoint);
                 polygon2.append(point2);
-                polygon2.append(trialPoint);
-                polygon2.append(polygon.getPoints().get(ran.get(2)));
-                district2 = new District(polygon2, startingDistrict.voters, false);
+                polygon2.append(polygon.getPoints().get((edge+2) % 3));
+                district2 = new District(polygon2, startingDistrict.voters, false);*/
                 if (district1.voters.size() >= bottomThreshold && district1.voters.size() < topThreshold){
                     valid = true;
                     mid1 = trialPoint;
@@ -550,13 +639,13 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 Polygon2D polygon2 = new Polygon2D();
                 polygon2.append(mid1);
                 polygon2.append(trialPoint);
-                polygon2.append(polygon.getPoints().get(ran.get(2)));
+                polygon2.append(point3);
                 district2 = new District(polygon2, startingDistrict.voters, false);
 
                 Polygon2D polygon3 = new Polygon2D();
                 polygon3.append(trialPoint);
                 polygon3.append(point2);
-                polygon3.append(polygon.getPoints().get(ran.get(2)));
+                polygon3.append(point3);
                 district3 = new District(polygon3, startingDistrict.voters, false);
                 if (district2.voters.size() >= bottomThreshold && district2.voters.size() < topThreshold){
                     valid = true;
