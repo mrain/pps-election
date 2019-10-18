@@ -409,14 +409,14 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             double[] waste2 = new double[3];
             getWaste(rep2, waste2, per2, repNum);
 
-            //return districts[getMaxRep(rep1, waste1)];
+            return districts[getMaxRep(rep1, waste1)];
             //if(!last) return districts[getMaxPer(per, per2)];
             //else return districts[getMaxRep(rep1, waste1)];
             //return districts[getMaxEfficiency(waste1, waste2, waste)];
             //return districts[getMinWaste(waste1)];
             //return districts[getMaxWaste(waste, waste2)];
-            if(!last) return districts[getGreedy(rep1, rep2, rep, waste1, waste, waste2)];
-            else return districts[getMaxRep(rep, waste1)];
+            //if(!last) return districts[getGreedy(rep1, rep2, rep, waste1, waste, waste2)];
+            //else return districts[getMaxRep(rep, waste1)];
         }
     }
 
