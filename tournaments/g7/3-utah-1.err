@@ -1,0 +1,6 @@
+java.lang.NullPointerException
+	at election.g7.DistrictGenerator.countWin(DistrictGenerator.java:520)
+	at election.g7.DistrictGenerator.isSwingState(DistrictGenerator.java:534)
+	at election.g7.DistrictGenerator.getDistricts(DistrictGenerator.java:233)
+	at election.sim.Run.lambda$main$0(Run.java:48)
+	at election.sim.Timer.run(Timer.java:56)

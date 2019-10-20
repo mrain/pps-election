@@ -19,7 +19,7 @@ def get_voters_in_polygon(polygon: Polygon, voters: List[Voter]) -> List[Voter]:
     return list(filter(lambda x: is_in_polygon(x, polygon), voters))
 
 
-def naive_partition(n: int) -> List[Polygon]:
+def naive_partition(n: int, return_points=False) -> List[Polygon]:
     edge_length = 1000 / n
     x_diff = 1 / 2 * edge_length
     y_diff = math.sqrt(3) / 2 * edge_length
@@ -32,6 +32,9 @@ def naive_partition(n: int) -> List[Polygon]:
         new_point = (point[0] + x_diff, point[1] - y_diff)
         new_level.append(new_point)
         points_by_level.append(new_level)
+
+    if return_points:
+        return points_by_level
 
     result = []
     for level in range(n):
@@ -66,7 +69,7 @@ def _find_level_points(voters, population_per_triangle):
                        [(x_right, y)]
         return level_points
 
-    level_num = math.floor(math.sqrt(len(voters) / population_per_triangle))
+    level_num = 22
     population_per_triangle = math.ceil(len(voters) / (level_num ** 2))
     curr_voter_num = 0
     points_by_level = [[(500, 500 * math.sqrt(3))]]
@@ -106,7 +109,7 @@ def adaptive_partition(voters: List[Voter], population_per_triangle=None) -> Lis
     if not population_per_triangle:
         population_per_triangle = len(voters) // (81 * 7)
     points_by_level = _find_level_points(voters, population_per_triangle)
-    points_by_level = _horizontal_adjustment(voters, points_by_level)  # comment out this to do naive
+    # points_by_level = _horizontal_adjustment(voters, points_by_level)  # comment out this to do naive
 
     result = []
     for level in range(len(points_by_level) - 1):
@@ -126,7 +129,7 @@ def adaptive_partition(voters: List[Voter], population_per_triangle=None) -> Lis
 
 # partition into three smaller triangles recursively
 def recursive_partition(triangle: Polygon, voters: List[Voter], threshold,
-                        tolerance=2.7, return_population=True):
+                        tolerance=9.7, return_population=True):
     new_voters = get_voters_in_polygon(triangle, voters)
     if len(new_voters) <= tolerance * threshold:
         if return_population:

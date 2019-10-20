@@ -14,8 +14,13 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     private Map<Integer, List<Voter>> voterMap = new HashMap<>();
     private Map<Integer, Boolean> checkMap = new HashMap<>();
     private int partyToWin = 1;
+    private Polygon2D board;
 
     public List<Voter> sortByXCoordinate(List<Voter>voters){
+        board = new Polygon2D();
+        board.append(0., 0.);
+        board.append(1000., 0.);
+        board.append(500., 500. * Math.sqrt(3));
         Collections.sort(voters, new Comparator<Voter>() {
             @Override
             public int compare(Voter v1, Voter v2) {
@@ -31,9 +36,9 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         numParties = voters.get(0).getPreference().size();
         List<Polygon2D> result = new ArrayList<Polygon2D>();
         //numDistricts = 243 / repPerDistrict;
-        numDistricts = 243;
+        numDistricts = 81;
         double height = scale / 2.0 * Math.sqrt(3);
-        int numStripes = 81;
+        int numStripes = 10;
         //Can contribute deviation
         int peopleInBlock = numVoters / numDistricts;
 
@@ -46,9 +51,9 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         });
         // From top to bottom
         List<List<Voter>> votersInStripe = new ArrayList<>();
-
         int from = 0;
         double btm = 500*Math.sqrt(3);
+        List<List<Voter>> voterList = new ArrayList<>();
         for (int i = 0; i < numStripes; i++) {
             int to = blockEachStripe*peopleInBlock*(i + 1) - 1;
             if (i == numStripes - 1) {
@@ -68,7 +73,11 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             for (int j=1;j<blockEachStripe;j++){
                 Double curr_x=voter_by_x.get((int)(voter_by_x.size()/blockEachStripe*j)).getLocation().getX();
                 x_coordinates.add(curr_x+eps);//8 doubles -->9
+                voterList.add(new ArrayList<>());
+                voterList.get(voterList.size() - 1).addAll(voter_by_x.subList((int)voter_by_x.size()/blockEachStripe*(j - 1), (int)voter_by_x.size()/blockEachStripe*j));
             }
+            voterList.add(new ArrayList<>());
+            voterList.get(voterList.size() - 1).addAll(voter_by_x.subList((int)voter_by_x.size()/blockEachStripe*(blockEachStripe - 1), voter_by_x.size()));
             //x_coordinates contains x_val for 8 vertical lines
 
             double preX = btm / Math.sqrt(3);
@@ -88,6 +97,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                             height_temp+=diff*Math.sqrt(3);
                             polygon.append(right_btm,height_temp);
                             result.add(polygon);
+                            //poly:voterList[i*blockEachStripe+vl]
                         }
                         else{
                             double diff=right_btm-left_btm;
@@ -211,71 +221,78 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 
             }
         }
-        int index = 0;
-//TODO: TEST
-//        for (Map.Entry<Polygon2D, List<Voter>> entry: polyganList.entrySet()){
-//            polygonMap.put(index, entry.getKey());
-//            voterMap.put(index++, entry.getValue());
-//            checkMap.put(index, false);
-//        }
-//
-//
-//        for (Map.Entry<Integer, Polygon2D> entry : polygonMap.entrySet()) {
-//            int id = entry.getKey();
-//            if (!checkMap.get(id) && !isSwingState(id)) {
-//                Map<Integer, double[]> adjacentDistricts = getAdjacentDistricts(id);
-//                Polygon2D swing = entry.getValue();
-//                for (Map.Entry<Integer, double[]> adjacentDistrict : adjacentDistricts.entrySet()) {
-//                    int otherId = adjacentDistrict.getKey();
-//                    double[] edge = adjacentDistrict.getValue();
-//                    double x1 = edge[0], y1 = edge[1], x2 = edge[2], y2 = edge[3];
-//                    double len = Math.sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2));
-//                    double width = getWidth(len);
-//                    List<Point2D> swingPoints = swing.getPoints();
-//                    List<Point2D> adjacentPoints = polygonMap.get(otherId).getPoints();
-//                    //vertical line
-//                    if (isEqual(x1, x2)) {
-//                        double start = Math.max(y1, y2);
-//                        double end = Math.min(y1, y2);
-//                        for (double i = start; i - end >= width; i -= width) {
-//                            Polygon2D concaveSwing = new Polygon2D();
-//                            Polygon2D convexAdjacent = new Polygon2D();
-//                            Polygon2D concaveAdjacent = new Polygon2D();
-//                            Polygon2D convexSwing = new Polygon2D();
-//                            buildPolygonByY(swingPoints, concaveSwing, convexSwing, x1, i, width);
-//                            buildPolygonByY(adjacentPoints, concaveAdjacent, convexAdjacent, x1, i, width);
-//                            if (setNewPolygon(id, otherId, convexSwing, concaveAdjacent, concaveSwing, convexAdjacent))
-//                                break;
-//                        }
-//                    }
-//                    //horizontal line
-//                    else if (isEqual(y1, y2)) {
-//                        double start = Math.min(x1, x2);
-//                        double end = Math.max(x1, x2);
-//                        for (double i = start; end - i >= width; i += width) {
-//                            Polygon2D concaveSwing = new Polygon2D();
-//                            Polygon2D convexAdjacent = new Polygon2D();
-//                            Polygon2D concaveAdjacent = new Polygon2D();
-//                            Polygon2D convexSwing = new Polygon2D();
-//                            buildPolygonByX(swingPoints, concaveSwing, convexSwing, y1, i, width);
-//                            buildPolygonByX(adjacentPoints, concaveAdjacent, convexAdjacent, y1, i, width);
-//                            if (setNewPolygon(id, otherId, convexSwing, concaveAdjacent, concaveSwing, convexAdjacent))
-//                                break;
-//                        }
-//                    }
-//                    else
-//                        System.out.println("Adjacent edge is not vertical or horizontal!");
-//                }
-//            }
-//        }
-//
-//        result = new ArrayList<Polygon2D>(polygonMap.values());
-        //System.out.println(getDistrictsByBorder(result));
+
+        for (int i = 0; i < voterList.size(); i++) {
+            polygonMap.put(i, result.get(i));
+            checkMap.put(i, false);
+            voterMap.put(i, voterList.get(i));
+        }
+
+        for (Map.Entry<Integer, Polygon2D> entry : polygonMap.entrySet()) {
+            int id = entry.getKey();
+            if (!checkMap.get(id) && isSwingState(id)) {
+                Map<Integer, double[]> adjacentDistricts = getAdjacentDistricts(id);
+                Polygon2D swing = entry.getValue();
+                boolean isGerrymander = true;
+                for (Map.Entry<Integer, double[]> adjacentDistrict : adjacentDistricts.entrySet()) {
+                    if (!isGerrymander) break;
+                    int otherId = adjacentDistrict.getKey();
+                    double[] edge = adjacentDistrict.getValue();
+                    double x1 = edge[0], y1 = edge[1], x2 = edge[2], y2 = edge[3];
+                    double len = Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+                    double width = getWidth(len);
+                    List<Point2D> swingPoints = swing.getPoints();
+                    List<Point2D> adjacentPoints = polygonMap.get(otherId).getPoints();
+                    //vertical line
+                    if (isEqual(x1, x2)) {
+                        double start = Math.max(y1, y2);
+                        double end = Math.min(y1, y2);
+                        double mid = (start + end) / 2 ;
+                        for (double i = start - 0.1; i - end > width; i -= width) {
+                            Polygon2D concaveSwing = new Polygon2D();
+                            Polygon2D convexAdjacent = new Polygon2D();
+                            Polygon2D concaveAdjacent = new Polygon2D();
+                            Polygon2D convexSwing = new Polygon2D();
+                            buildPolygonByY(id, otherId, true, swingPoints, concaveSwing, convexSwing, x1, i, width);
+                            buildPolygonByY(id, otherId, false, adjacentPoints, concaveAdjacent, convexAdjacent, x1, i, width);
+
+                            if (setNewPolygon(id, otherId, convexSwing, concaveAdjacent, concaveSwing, convexAdjacent)) {
+                                isGerrymander = false;
+                                break;
+                            }
+                        }
+                    }
+                    //horizontal line
+                    else if (isEqual(y1, y2)) {
+                        double start = Math.min(x1, x2);
+                        double end = Math.max(x1, x2);
+                        double mid = (start + end) / 2 ;
+                        for (double i = start + 0.1; end - i > width; i += width) {
+                            Polygon2D concaveSwing = new Polygon2D();
+                            Polygon2D convexAdjacent = new Polygon2D();
+                            Polygon2D concaveAdjacent = new Polygon2D();
+                            Polygon2D convexSwing = new Polygon2D();
+                            buildPolygonByX(id, otherId, true, swingPoints, concaveSwing, convexSwing, y1, i, width);
+                            buildPolygonByX(id, otherId, false, adjacentPoints, concaveAdjacent, convexAdjacent, y1, i, width);
+
+                            if (setNewPolygon(id, otherId, convexSwing, concaveAdjacent, concaveSwing, convexAdjacent)) {
+                                isGerrymander = false;
+                                break;
+                            }
+                        }
+                    } else
+                        System.out.println("Adjacent edge is not vertical or horizontal!" + " x1: " + x1 + " y1: " + y1 + " x2: " + x2 + " y2: " + y2);
+                }
+            }
+
+        }
+
+        result = new ArrayList<Polygon2D>(polygonMap.values());
         return result;
     }
 
     private double getWidth(double len) {
-        return len / 10;
+        return len / 8;
     }
 
 
@@ -307,9 +324,8 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     }
 
     //think this integer as the polygon id
-    //borrow some of this from group 8
-    public Map<Line2D, ArrayList<Integer>>getDistrictsByBorder(List<Polygon2D> districts) {
-        Map<Line2D, ArrayList<Integer>>edgeMap = new HashMap<Line2D, ArrayList<Integer>>();
+    public Map<String, ArrayList<Integer>>getDistrictsByBorder(List<Polygon2D> districts) {
+        Map<String, ArrayList<Integer>>edgeMap = new HashMap<String, ArrayList<Integer>>();
 
         for (HashMap.Entry<Integer, Polygon2D> entry : polygonMap.entrySet()){
             Polygon2D district = entry.getValue();
@@ -320,7 +336,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                     nextIdx = 0;
                 }
                 Point2D endPoint = district.getPoints().get(nextIdx);
-                Line2D key = constructLineKey(startPoint, endPoint);
+                String key = line2DToString(constructLineKey(startPoint, endPoint));
                 if(edgeMap.containsKey(key)) {
                     edgeMap.get(key).add(entry.getKey());
                 } else {
@@ -333,6 +349,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 
         return edgeMap;
     }
+    //borrow some of this from group 8
 
     //only occurs when y coordinates are the same
     //need to make sure this captures all cases
@@ -348,7 +365,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         if (l1_p1_x < l2_p1_x ){
             if (l1_p2_x > l2_p1_x){
                 //contain
-                if (l2_p2_x <= l1_p2_x){
+                if (Double.compare(l2_p2_x, l1_p2_x) <= 0){
                     return 0;
                 }
                 //overlap
@@ -363,11 +380,11 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 
         }
         else{
-            if (l2_p2_x <=l1_p1_x){
+            if (Double.compare(l2_p2_x, l1_p1_x) <= 0){
                 return 2;
             }
             else{
-                if (l1_p2_x <=l2_p2_x){
+                if (Double.compare(l1_p2_x, l2_p2_x) <= 0){
                     return 3;
                 }
                 else{
@@ -394,21 +411,33 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         //result is districts generated
         List<Point2D> points = poly.getPoints();
         List<Polygon2D> result = new ArrayList<Polygon2D>(polygonMap.values());
-        Map<Line2D, ArrayList<Integer>> edgeMap = getDistrictsByBorder(result);
-        for (int i = 0; i < points.size(); ++ i){
-            Line2D border = constructLineKey(points.get(i), points.get(i + 1));
+        Map<String, ArrayList<Integer>> edgeMap = getDistrictsByBorder(result);
 
+        for (int i = 0; i < points.size(); ++ i){
+            Point2D p2 = null;
+            if (i == points.size() - 1)
+                p2 = points.get(0);
+            else
+                p2 = points.get(i + 1);
+            String border = line2DToString(constructLineKey(points.get(i), p2));
+//            System.out.println("border" + border);
 
             //first find districts that are exactly match the border line
             //this should find districts that are to the left and to the right
 
             List<Integer> shareDistricts = edgeMap.get(border);
+
             for (int j = 0; j<shareDistricts.size();j++){
-                if (shareDistricts.get(j)!= id){
+                if (shareDistricts.get(j)!= id && !checkMap.get(shareDistricts.get(j))){
+
                     //here should be a 2D thing
                     double[] edge = {points.get(i).getX(), points.get(i).getY(),
-                            points.get(i + 1).getX(), points.get(i + 1).getY()};
-                    list.put(shareDistricts.get(j), edge);
+                            p2.getX(), p2.getY()};
+                    if (isEqual(points.get(i).getX(), p2.getX())) {
+//                        System.out.println("edge");
+//                        print(edge);
+                        list.put(shareDistricts.get(j), edge);
+                    }
                 }
             }
 
@@ -421,52 +450,55 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 
 
             //neighbour contained in border
-            for (HashMap.Entry<Line2D, ArrayList<Integer>> entry : edgeMap.entrySet()) {
-                if (strictOverlap(border, entry.getKey()) == 0) {
-                    //most of the time this loop should just be one time
-                    for (int k = 0; k < entry.getValue().size();k++) {
-                        if (entry.getValue().get(k)!=id){
-                            list.put(entry.getValue().get(k), fromLine2DtoDouble(entry.getKey()));
+            for (HashMap.Entry<String, ArrayList<Integer>> entry : edgeMap.entrySet()) {
+                if (isEqual(StringToLine2D(border).getP1().getY(), StringToLine2D(border).getP2().getY()) &&
+                        isEqual(StringToLine2D(entry.getKey()).getP1().getY(), StringToLine2D(entry.getKey()).getP2().getY()) &&
+                        isEqual(StringToLine2D(border).getP1().getY(), StringToLine2D(entry.getKey()).getP2().getY())) {
+                    if (strictOverlap(StringToLine2D(border), StringToLine2D(entry.getKey())) == 0) {
+                        //most of the time this loop should just be one time
+                        for (int k = 0; k < entry.getValue().size(); k++) {
+                            if (entry.getValue().get(k) != id && !checkMap.get(entry.getValue().get(k))) {
+                                list.put(entry.getValue().get(k), fromLine2DtoDouble(StringToLine2D(entry.getKey())));
+
+                            }
+
+                        }
+                    }
+                    //border contained in neighbour
+                    else if (strictOverlap(StringToLine2D(border), StringToLine2D(entry.getKey())) == 3) {
+                        for (int m = 0; m < entry.getValue().size(); m++) {
+                            if (entry.getValue().get(m) != id && !checkMap.get(entry.getValue().get(m))) {
+                                list.put(entry.getValue().get(m), fromLine2DtoDouble(StringToLine2D(border)));
+                            }
+
+                        }
+                    } else if (strictOverlap(StringToLine2D(border), StringToLine2D(entry.getKey())) == 1) {
+                        //turn Line2D to array double
+                        double[] lineborder = fromLine2DtoDouble(StringToLine2D(border));
+                        double[] lineneighbor = fromLine2DtoDouble(StringToLine2D(entry.getKey()));
+
+                        double[] edge_put = null;
+
+                        //border has lower x
+                        if (lineborder[0] < lineneighbor[0]) {
+                            edge_put = new double[]{lineborder[2], lineborder[3], lineneighbor[0], lineneighbor[1]};
+
+                        } else {
+                            edge_put = new double[]{lineneighbor[2], lineneighbor[3], lineborder[0], lineborder[1]};
                         }
 
-                    }
-                }
-                //border contained in neighbour
-                else if(strictOverlap(border, entry.getKey()) == 3){
-                    for (int m = 0; m < entry.getValue().size();m++) {
-                        if (entry.getValue().get(m)!=id){
-                            list.put(entry.getValue().get(m), fromLine2DtoDouble(border));
+
+                        for (int p = 0; p < entry.getValue().size(); p++) {
+                            if (entry.getValue().get(p) != id && !checkMap.get(entry.getValue().get(p))) {
+//                                System.out.println("other3");
+//                                print(edge_put);
+                                list.put(entry.getValue().get(p), edge_put);
+                            }
+
                         }
-
-                    }
-                }
-                else if(strictOverlap(border, entry.getKey()) == 1){
-                    //turn Line2D to array double
-                    double[] lineborder = fromLine2DtoDouble(border);
-                    double[] lineneighbor = fromLine2DtoDouble(entry.getKey());
-
-                    double[] edge_put = null;
-
-                    //border has lower x
-                    if (lineborder[0] < lineneighbor[0]) {
-                        edge_put = new double[] {lineborder[2],lineborder[3],lineneighbor[0],lineneighbor[1]};
-
-                    }
-                    else{
-                        edge_put = new double[] {lineneighbor[2],lineneighbor[3],lineborder[0],lineborder[1]};
-                    }
-
-
-                    for (int p = 0; p < entry.getValue().size(); p++) {
-                        if (entry.getValue().get(p)!=id){
-                            list.put(entry.getValue().get(p), edge_put);
-                        }
-
                     }
                 }
             }
-
-
         }
 
         return list;
@@ -500,16 +532,23 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         //should pass in polygon id here
         List<Voter> voters_curr = voterMap.get(id);
         int blue = countWin(voters_curr);
-        //only a valid swing state between 0.42 and 0.5
-        if (blue / voters_curr.size() > 0.42 && blue / voters_curr.size() < 0.5) {
+        //three conditions
+
+        if ( (blue / (double)voters_curr.size() > 0.42 && blue / (double)voters_curr.size() < 0.5)
+                || (blue / (double)voters_curr.size() > 0.17 && blue / (double)voters_curr.size() < 0.25) ||
+                (blue / (double)voters_curr.size() > 0.67 && blue / (double)voters_curr.size() < 0.75))
+        {
             return true;
         }
         return false;
     }
 
+
     //Check population is valid for two polygon2 and if how beneficial it is for digging.
     private boolean isValidGerrymander(int swingId, int otherId, Polygon2D swing, Polygon2D other) {
         List<Voter> swing_voters = new ArrayList<>();
+
+        List<Voter> swing_voters_original = voterMap.get(swingId);
 
 
         //Recalculate people in proposed districts
@@ -536,24 +575,41 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
 
 
         int num_win = countWin(swing_voters);
-        if (num_win / swing_voters.size() > 0.5) {
+
+//        if ((double)num_win / swing_voters.size() > 0.5) {
+////            System.out.print("old" + (double)countWin(swing_voters_original)/swing_voters_original.size());
+////            System.out.print("new" + (double)num_win / swing_voters.size());
+//            return true;
+//        }
+
+        //check for all three conditions, "Genertor time out"
+        double new_ratio = (double)num_win / swing_voters.size();
+        double old_ratio = (double)countWin(swing_voters_original)/swing_voters_original.size();
+//        System.out.println("old" + old_ratio);
+//        System.out.println("new" + new_ratio);
+        boolean condition1 = new_ratio > 0.5 && old_ratio > 0.42 && old_ratio <0.5;
+        boolean condition2 = new_ratio > 0.75 && old_ratio > 0.67 && old_ratio <0.75;
+        boolean condition3 = new_ratio > 0.25 && old_ratio > 0.17 && old_ratio <0.25;
+        if ( condition1 || condition2 || condition3) {
             return true;
         }
+
+
         return false;
     }
 
     //Vertical adjacent edge.
-    private void buildPolygonByY(List<Point2D> point2Ds, Polygon2D concave, Polygon2D convex, double x1, double y1,
+    private void buildPolygonByY(int swing, int other, boolean isSwing, List<Point2D> point2Ds, Polygon2D concave, Polygon2D convex, double x1, double y1,
                                  double width) {
         for (int j = 0; j < point2Ds.size(); j++) {
             Point2D point2D = point2Ds.get(j);
             concave.append(point2D);
             convex.append(point2D);
             // Build the triangle when bulding the overlapping edge.
-            if (isEqual(point2D.getX(), x1) && j < point2Ds.size() - 1 &&
-                    isEqual(point2Ds.get(j + 1).getX(), x1)) {
-                double y3 = 0, y4 = 0;
-                if (point2Ds.get(j + 1).getY() > point2D.getY()) {
+            if (isEqual(point2D.getX(), x1) && ((j < point2Ds.size() - 1 &&
+                    isEqual(point2Ds.get(j + 1).getX(), x1)) || (j == point2Ds.size() - 1 && isEqual(point2Ds.get(0).getX(), x1)))) {
+                double y3 = 0, y4 = 0, yy = j < point2Ds.size() - 1 ? point2Ds.get(j + 1).getY() : point2Ds.get(0).getY();
+                if (yy > point2D.getY()) {
                     y3 = y1 - width;
                     y4 = y1;
                 }
@@ -562,27 +618,34 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                     y4 = y1 - width;
                 }
                 concave.append(x1, y3);
-                concave.append(x1 - Math.sqrt(3)/2*width, (y4 + y3)/2);
-                concave.append(x1, y4);
                 convex.append(x1, y3);
-                convex.append(x1 + Math.sqrt(3)/2*width, (y4 + y3)/2);
+                if ((isSwing && swing > other) || (!isSwing && swing < other)) {
+                    concave.append(x1 + Math.sqrt(3) / 2 * width, (y4 + y3) / 2);
+                    convex.append(x1 - Math.sqrt(3)/2*width, (y4 + y3)/2);
+                }
+                else {
+                    concave.append(x1 - Math.sqrt(3) / 2 * width, (y4 + y3) / 2);
+                    convex.append(x1 + Math.sqrt(3)/2*width, (y4 + y3)/2);
+                }
+                concave.append(x1, y4);
                 convex.append(x1, y4);
             }
         }
+
     }
 
     //Horizontal adjacent edge.
-    private void buildPolygonByX(List<Point2D> point2Ds, Polygon2D concave, Polygon2D convex, double y1, double x1,
+    private void buildPolygonByX(int swing, int other, boolean isSwing, List<Point2D> point2Ds, Polygon2D concave, Polygon2D convex, double y1, double x1,
                                  double width) {
         for (int j = 0; j < point2Ds.size(); j++) {
             Point2D point2D = point2Ds.get(j);
             concave.append(point2D);
             convex.append(point2D);
             // Build the triangle when bulding the overlapping edge.
-            if (isEqual(point2D.getY(), y1) && j < point2Ds.size() - 1 &&
-                    isEqual(point2Ds.get(j + 1).getY(), y1)) {
-                double x3 = 0, x4 = 0;
-                if (point2Ds.get(j + 1).getX() > point2D.getX()) {
+            if (isEqual(point2D.getY(), y1) && ((j < point2Ds.size() - 1 &&
+                    isEqual(point2Ds.get(j + 1).getY(), y1)) || (j == point2Ds.size() - 1 && isEqual(point2Ds.get(0).getY(), y1)))) {
+                double x3 = 0, x4 = 0, xx = j < point2Ds.size() - 1 ? point2Ds.get(j + 1).getX() : point2Ds.get(0).getX();
+                if (xx> point2D.getX()) {
                     x3 = x1;
                     x4 = x1 + width;
                 }
@@ -591,25 +654,42 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                     x4 = x1;
                 }
                 concave.append(x3, y1);
-                concave.append((x3 + x4)/2, y1 + Math.sqrt(3)/2*width);
-                concave.append(x4, y1);
                 convex.append(x3, y1);
-                convex.append((x3 + x4)/2, y1 - Math.sqrt(3)/2*width);
+                if ((isSwing && swing > other) || (!isSwing && swing < other)) {
+                    concave.append((x3 + x4)/2, y1 - Math.sqrt(3)/2*width);
+                    convex.append((x3 + x4)/2, y1 + Math.sqrt(3)/2*width);
+                }
+                else {
+                    concave.append((x3 + x4)/2, y1 + Math.sqrt(3)/2*width);
+                    convex.append((x3 + x4)/2, y1 - Math.sqrt(3)/2*width);
+                }
                 convex.append(x4, y1);
+                concave.append(x4, y1);
             }
         }
     }
 
     private boolean setNewPolygon(int id, int otherId, Polygon2D convexSwing, Polygon2D concaveAdjacent,
                                   Polygon2D concaveSwing, Polygon2D convexAdjacent) {
-        if (isValidGerrymander(id, otherId, convexSwing, concaveAdjacent)) {
+//        System.out.println("swing" + polygonMap.get(id));
+//        System.out.println("adj" + polygonMap.get(otherId));
+//        System.out.println("swing1" + convexSwing);
+//
+//        System.out.println("swing2" + concaveSwing);
+//        System.out.println("adj2" + convexAdjacent);
+        if (board.contains(convexSwing) && board.contains(concaveAdjacent) &&
+                !convexSwing.overlap(concaveAdjacent) && isValidGerrymander(id, otherId, convexSwing, concaveAdjacent)) {
+            System.out.println("in");
             checkMap.put(id, true);
             checkMap.put(otherId, true);
             polygonMap.put(id, convexSwing);
             polygonMap.put(otherId, concaveAdjacent);
+
             return true;
         }
-        if (isValidGerrymander(id, otherId, concaveSwing, convexAdjacent)) {
+        if (board.contains(concaveSwing) && board.contains(convexAdjacent) &&
+                !concaveSwing.overlap(convexAdjacent) && isValidGerrymander(id, otherId, concaveSwing, convexAdjacent)) {
+            System.out.println("in1");
             checkMap.put(id, true);
             checkMap.put(otherId, true);
             polygonMap.put(id, concaveSwing);
@@ -622,5 +702,17 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     private boolean isEqual(double a, double b) {
         return Math.abs(a - b) <= eps;
     }
+
+    private String line2DToString(Line2D line2D) {
+        return line2D.getP1().getX() + "," + line2D.getP1().getY() +
+                "," + line2D.getP2().getX() + "," +line2D.getP2().getY();
+    }
+
+    private Line2D StringToLine2D(String str) {
+        String[] split = str.split(",");
+        return new Line2D.Double(new Point2D.Double(Double.valueOf(split[0]), Double.valueOf(split[1])),
+                new Point2D.Double(Double.valueOf(split[2]), Double.valueOf(split[3])));
+    }
+
 
 }

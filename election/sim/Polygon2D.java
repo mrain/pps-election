@@ -25,14 +25,10 @@ public class Polygon2D {
             Line2D headLine = new Line2D.Double(point, head);
             for (int i = 0; i < points.size() - 2; ++i) {
                 Line2D curLine = new Line2D.Double(points.get(i), points.get(i + 1));
-                curLine.setLine(curLine.getX1(), curLine.getY1(), curLine.getX2(), curLine.getY2());
-                /*if (newLine.intersectsLine(curLine) || headLine.intersectsLine(curLine)) {
-                	System.out.println(curLine.getX1() + ", " + curLine.getY1() + " - " + curLine.getX2() + ", " + curLine.getY2());
-                	System.out.println(headLine.getX1() + ", " + headLine.getY1() + " - " + headLine.getX2() + ", " + headLine.getY2());
-                	System.out.println(newLine.intersectsLine(curLine));
-                	System.out.println(headLine.intersectsLine(curLine));
+                if ((i < points.size() - 2 && newLine.intersectsLine(curLine))
+                    || (i > 0 && headLine.intersectsLine(curLine))) {
                     return false;
-                }*/
+                }
             }
         }
         points.add((Point2D)point.clone());
@@ -75,8 +71,10 @@ public class Polygon2D {
 //            return true;
         for (int i = 0; i < points.size(); ++ i) {
 //            Line2D line = new Line2D.Double(points.get(i), points.get(i + 1));
-            if (ptSegDist(point, points.get(i), points.get((i + 1) % points.size())) < 1e-8)
+            if (ptSegDist(point, points.get(i), points.get((i + 1) % points.size())) < 1e-8) {
+                System.err.println(i + " " + points.get(i) + " " + points.get((i + 1) % points.size()));
                 return true;
+            }
         }
         Random random = new Random();
         double theta = random.nextDouble() * Math.PI;
@@ -236,9 +234,17 @@ public class Polygon2D {
 
     public double ptSegDist(Point2D p, Point2D u, Point2D v) {
 //        System.err.println(u.getX() + " " + u.getY() + " " + v.getX() + " " + v.getY());
+//        System.err.println(x.getX() + " " + x.getY() + " !" );
+        if (sign(crossProduct(subtract(p, u), subtract(v, u))) == 0) {
+            double t1 = dot(subtract(p, u), subtract(v, u));
+            double t2 = dot(subtract(v, u), subtract(v, u));
+            System.err.println("! " + t1 + " " + t2);
+            if (t1 < -1e-8 || t1 > t2 + 1e-8)
+                return Math.min(ptDist(u, p), ptDist(v, p));
+            else return 0;
+        }
         Point2D dir = toUnit(subtract(v, u));
         Point2D x = add(u, multiply(dir, dot(dir, subtract(p, u))));
-//        System.err.println(x.getX() + " " + x.getY() + " " );
         if (sign(crossProduct(subtract(v, p), subtract(x, p))) * sign(crossProduct(subtract(x, p), subtract(u, p))) == -1) {
             return Math.min(ptDist(u, x), ptDist(v, x));
         } else return ptDist(p, x);
