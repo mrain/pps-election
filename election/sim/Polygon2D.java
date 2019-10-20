@@ -28,6 +28,7 @@ public class Polygon2D {
                 if ((i < points.size() - 2 && newLine.intersectsLine(curLine))
                     || (i > 0 && headLine.intersectsLine(curLine)))
                     return false;
+                }
             }
         }
         points.add((Point2D)point.clone());
