@@ -433,7 +433,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
                 double[] waste1 = new double[2];
                 getWaste(rep1, waste1, per1, repNum);
 
-                return districts[getMaxRep1(rep, waste)];
+                return districts[getMaxRep1(rep1, waste1)];
             }
             //if(!last) return districts[getMaxPer(per, per2)];
             //else return districts[getMaxRep(rep1, waste1)];
