@@ -269,11 +269,13 @@ public class RingDistrictGenerator implements DistrictGenerator {
 			polygon.append(outerX, outerY);
 			polygon.append(innerX, innerY);
 			int p = Run.countInclusion(voters, polygon);
-			if(p >= 0.9*avgVotersPerDistrict && p <= 1.1*avgVotersPerDistrict) {
-				efgp = efficiencyGap(voters, polygon, repPerDistrict, party);
-				if(efgp > max_efgp) {
-					max_efgp = efgp;
-					result = polygon;
+			if(gmable) {
+				if(p >= 0.9*avgVotersPerDistrict && p <= 1.1*avgVotersPerDistrict) {
+					efgp = efficiencyGap(voters, polygon, repPerDistrict, party);
+					if(efgp > max_efgp) {
+						max_efgp = efgp;
+						result = polygon;
+					}
 				}
 				else if(p >= 1.1*(double)(avgVotersPerDistrict))
 					break;
@@ -479,7 +481,7 @@ public class RingDistrictGenerator implements DistrictGenerator {
       numDistricts = 243 / repPerDistrict;
       random = new Random(seed);
       avgVotersPerDistrict = 333333 / numDistricts;
-      int gerryManderParty = 0;
+      int gerryManderParty = 1;
 			// System.out.println(compactGerry(voters));
 
       // 81 Districts
