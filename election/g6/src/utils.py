@@ -1,8 +1,9 @@
 from typing import List, Tuple, Dict
 
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, MultiPolygon
 
 from election.g6.src.voter import Voter
+from election.g6.src.district import District
 
 
 def get_bounding_box(polygon: Polygon) -> Tuple[float, float, float, float]:
@@ -48,6 +49,12 @@ def check_if_node_is_near_part_boundary(graph, node: int) -> bool:
     return False
 
 
+def check_if_node_is_near_part(graph, node: int, part: int) -> bool:
+    for n in graph.neighbors(node):
+        if graph.nodes[n]['part'] == part:
+            return True
+    return False
+
 def get_population_in_polygons(voters: List[Voter], polygons: List[Polygon]) -> List[int]:
     # Sort the population according to x into two array
     voters_by_x = sorted(voters, key=lambda x: x.location.x)
@@ -76,6 +83,40 @@ def get_voters_in_polygon(voters: List[Voter], polygon: Polygon) -> List[Voter]:
     return vs
 
 
+def get_all_adj_nodes_to_district(d_id, d, graph):
+    #  A list of nodes and their part ids
+    all_adjacent_nodes = []
+    for i, poly in d.polygons:
+        for node in graph.neighbors(i):
+            if graph.nodes[node]['part'] != d_id:
+                all_adjacent_nodes.append((graph.nodes[node]['part'], node))
+    return all_adjacent_nodes
+
+
+def find_adjacent_district_with_most_triangles(d_id, d, districts, graph):
+    all_adjacent_nodes = get_all_adj_nodes_to_district(d_id, d, graph)
+    unique_districts = set()
+    for d_prime_id, n in all_adjacent_nodes:
+        unique_districts.add(d_prime_id)
+    dists = []
+    for d_prime_id in unique_districts:
+        dists.append((d_prime_id, districts[d_prime_id]))
+    return sorted(dists, key=lambda x: -x[1].get_population())
+
+
+def find_adjacent_district_with_least_triangles(d_id, d, districts, graph):
+    pass
+
+
+def check_if_removing_polygon_is_okay(district, index):
+    new_d = District(district.representatives_per_district, district.n_parties)
+    for i, poly in district.polygons:
+        if i != index:
+            new_d.append_triangle((i, poly))
+    print(type(new_d.get_one_polygon()))
+    return not new_d.is_invalid()
+
+
 def get_voters_in_polygons(voters: List[Voter], polygons: List[Polygon]) -> List[List[Voter]]:
     population_counts = []
     for index, polygon in enumerate(polygons):
@@ -87,6 +128,7 @@ def get_voters_in_polygons(voters: List[Voter], polygons: List[Polygon]) -> List
 def get_population_in_polygons_basic(voters: List[Voter], polygons: List[Polygon]) -> List[int]:
     population_counts = []
     for index, polygon in enumerate(polygons):
+        print('.', end='')
         population = count_population_in_polygon(voters, polygon)
         population_counts.append(population)
     return population_counts
@@ -104,8 +146,8 @@ def find_adjacent_triangle(index, triangles: List[Dict]):
     for i, t in enumerate(triangles):
         if i == index:
             continue
-        x1, y1 = t['polygon'].exterior.coords.xy
-        x2, y2 = tr['polygon'].exterior.coords.xy
+        x1, y1 = t.exterior.coords.xy
+        x2, y2 = tr.exterior.coords.xy
         n_p = 0
         for l in range(3):
             for j in range(3):

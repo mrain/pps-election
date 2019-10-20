@@ -1,9 +1,6 @@
 from election.g6.src.map import Map
 import math
 from shapely.geometry import Polygon
-map_path = "maps/tournaments/tour2.map"
-m = Map.from_file(map_path)
-voters = m.voters
 
 
 def _find_level_points(voters, num_levels=22, special_level=1):
@@ -78,9 +75,9 @@ def _further_split(triangles_by_level, special_level):
 
     return result
 
+
 # num_levels 22, 38, special_level 1, 4
-def get_triangles(num_levels, special_level):
-    global voters
+def get_triangles(voters, num_levels, special_level):
     a = _find_level_points(voters, num_levels, special_level)
     b = _points_to_triangle(a)
     c = _further_split(b, special_level)

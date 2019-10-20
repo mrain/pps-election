@@ -29,23 +29,23 @@ if __name__ == '__main__':
         help='Python module to use as district generator'
     )
     parser.add_argument(
-        '--input', '-i', type=str, default="maps/g6/0_randomg1_3.pickle",
+        '--input', '-i', type=str, default="maps/final/25.pickle",
         help='Path to pickle with graph and triangles'
     )
     parser.add_argument(
-        '--input-map', '-im', type=str, default="maps/g1/randomg1_3.map",
+        '--input-map', '-im', type=str, default="maps/tournaments/tour2.map",
         help='Path to map file to gerrymander'
     )
     parser.add_argument(
-        '--n-iters', type=int, default=500,
+        '--n-iters', type=int, default=700,
         help='Number of iteration to run gerrymandering for'
     )
     parser.add_argument(
-        '--gerrymander-for', type=int, default=2,
+        '--gerrymander-for', type=int, default=1,
         help='Party index for which to gerrymander [0, 1, 2]'
     )
     parser.add_argument(
-        '--output', '-o', type=str, default="maps/g6/6_randomg1_3_districts.map",
+        '--output', '-o', type=str, default="maps/final/25_3reps_1party.map",
         help='A path where to save the final map'
     )
     parser.add_argument(

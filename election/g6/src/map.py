@@ -56,8 +56,8 @@ class Map:
             file.write('\n')
         file.write(f'{str(len(self.districts))}\n')
         for district in self.districts:
-            if type(district) != Polygon:
-                continue
+            # if type(district) != Polygon:
+            #     continue
             file.write(get_polygon_file_line(district))
             file.write('\n')
         file.close()

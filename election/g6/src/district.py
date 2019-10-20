@@ -16,26 +16,33 @@ class District:
 
     def drop_triangle(self, triangle):
         p = []
-        for polygon in self.polygons:
+        for i, polygon in self.polygons:
             if polygon != triangle:
-                p.append(polygon)
+                p.append((i, polygon))
+        self.polygons = p
+
+    def drop_triangle_by_id(self, index):
+        p = []
+        for i, polygon in self.polygons:
+            if i != index:
+                p.append((i, polygon))
         self.polygons = p
 
     def get_population(self):
         population = 0
-        for polygon in self.polygons:
+        for i, polygon in self.polygons:
             population += polygon['population']
         return population
 
     def get_one_polygon(self):
         f = []
-        for p in self.polygons:
+        for i, p in self.polygons:
             f.append(p['polygon'])
         return cascaded_union(f)
 
     def get_party_distribution(self):
         party_distribution = [0] * self.n_parties
-        for polygon in self.polygons:
+        for i, polygon in self.polygons:
             for party in polygon['party_distribution'].keys():
                 party_distribution[party] += polygon['party_distribution'][party]
         return party_distribution
