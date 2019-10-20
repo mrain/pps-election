@@ -1,0 +1,7 @@
+java.lang.ArrayIndexOutOfBoundsException: -1
+	at java.util.ArrayList.elementData(ArrayList.java:418)
+	at java.util.ArrayList.get(ArrayList.java:431)
+	at election.g3.DistrictGenerator.countVotesPercentagePerParty(DistrictGenerator.java:292)
+	at election.g3.DistrictGenerator.getDistricts(DistrictGenerator.java:55)
+	at election.sim.Run.lambda$main$0(Run.java:48)
+	at election.sim.Timer.run(Timer.java:56)
