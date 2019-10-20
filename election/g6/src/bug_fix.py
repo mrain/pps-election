@@ -22,8 +22,9 @@ def _find_level_points(voters, num_levels=22, special_level=1):
         level_points = [(x_left, y)] + [(x_left + i * x_diff, y) for i in range(1, level - 1)] + \
                        [(x_right, y)]
         return level_points
-
-    population_per_triangle = math.floor(len(voters) / (num_levels ** 2 + 2))
+        
+    addtional_triangles = (special_level * 2 - 1) * 2
+    population_per_triangle = math.floor(len(voters) / (num_levels ** 2 + addtional_triangles))
     curr_voter_num = 0
     points_by_level = [[(500, 500 * math.sqrt(3))]]
     for level in range(2, num_levels + 1):
