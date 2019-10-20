@@ -29,7 +29,7 @@ if __name__ == '__main__':
         help='Python module to use as district generator'
     )
     parser.add_argument(
-        '--input', '-i', type=str, default="maps/final/25.pickle",
+        '--input', '-i', type=str, default="maps/final/25_1.pickle",
         help='Path to pickle with graph and triangles'
     )
     parser.add_argument(
@@ -45,7 +45,7 @@ if __name__ == '__main__':
         help='Party index for which to gerrymander [0, 1, 2]'
     )
     parser.add_argument(
-        '--output', '-o', type=str, default="maps/final/25_3reps_1party.map",
+        '--output', '-o', type=str, default="maps/final/25_1reps_1party.map",
         help='A path where to save the final map'
     )
     parser.add_argument(
@@ -53,7 +53,7 @@ if __name__ == '__main__':
         help='Random seed'
     )
     parser.add_argument(
-        '--representatives', type=int, default=3,
+        '--representatives', type=int, default=1,
         help='Number of representatives per district [1, 3]'
     )
     args = parser.parse_args()

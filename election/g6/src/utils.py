@@ -113,13 +113,13 @@ def check_if_removing_polygon_is_okay(district, index):
     for i, poly in district.polygons:
         if i != index:
             new_d.append_triangle((i, poly))
-    print(type(new_d.get_one_polygon()))
     return not new_d.is_invalid()
 
 
 def get_voters_in_polygons(voters: List[Voter], polygons: List[Polygon]) -> List[List[Voter]]:
     population_counts = []
     for index, polygon in enumerate(polygons):
+        print('.', end='')
         population = get_voters_in_polygon(voters, polygon)
         population_counts.append(population)
     return population_counts

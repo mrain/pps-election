@@ -37,6 +37,7 @@ def get_districts_from_triangles(
     #     ncuts=100,  # number of different cuts to try
     #     niter=2000,  # number of iterations of an algorithm
     #     contig=True,  # force partitions to be contiguous
+    #     recursive=True
     #     # ubvec=[1.09],  # allowed constraint imbalance
     # )
     # print('Forming districts')
@@ -45,7 +46,7 @@ def get_districts_from_triangles(
     #     districts.append(District(representatives_per_district, n_parties))
     # for index, part in enumerate(parts):
     #     graph.nodes[index]['part'] = part
-    #     districts[part].append_triangle(triangles[index])
+    #     districts[part].append_triangle((index, triangles[index]))
     print('Making initial partition')
     (edgecuts, parts) = nxmetis.partition(
         graph,
@@ -54,8 +55,10 @@ def get_districts_from_triangles(
         # rtype='sep2sided',
         # node_weight='population',
         options=nxmetis.types.MetisOptions(
+            # ctype=nxmetis.enums.MetisCType.shem,
+            iptype=nxmetis.enums.MetisIPType.node,
             ncuts=100,  # number of different cuts to try
-            niter=2000,  # number of iterations of an algorithm
+            niter=4000,  # number of iterations of an algorithm
             contig=True
         ),
         # ubvec=[1.09],  # allowed constraint imbalance
@@ -73,7 +76,12 @@ def get_districts_from_triangles(
     pre = [(len(d.polygons), d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
     done = []
     not_all_good = True
+    num_it = 0
     while not_all_good:
+        num_it += 1
+        if num_it > 100:
+            num_it = 0
+            done = []
         pre = [(len(d.polygons), d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
         print('|', end='')
         not_all_good = False
@@ -87,23 +95,23 @@ def get_districts_from_triangles(
                         continue
                     if made_flip:
                         break
+                    possible_triangles = []
                     for index, polygon in potential_district.polygons:
                         is_adj = check_if_node_is_near_part(graph, index, i)
                         if is_adj and check_if_removing_polygon_is_okay(potential_district, index):
-                            print('I am doing it')
-                            made_flip = True
-                            potential_district.drop_triangle_by_id(index)
-                            print('Boom', type(potential_district.get_one_polygon()))
-                            print('Boompre', type(d.get_one_polygon()))
-                            d.append_triangle((index, polygon))
-                            print('Boom2', type(d.get_one_polygon()))
-                            done.append(potential_district_id)
-                            graph.nodes[index]['part'] = i
-                            break
+                            possible_triangles.append((index, polygon))
+                    if len(possible_triangles) > 0:
+                        index, triangle_to_swap = random.sample(possible_triangles, 1)[0]
+                        made_flip = True
+                        potential_district.drop_triangle_by_id(index)
+                        d.append_triangle((index, triangle_to_swap))
+                        done.append(potential_district_id)
+                        graph.nodes[index]['part'] = i
                 if made_flip:
                     print('.', end='')
                 else:
-                    print(',', end='')
+                    print(',' + str(len(possible_triangles)), end='')
+
 
     pre = [(len(d.polygons), d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
 
@@ -201,8 +209,8 @@ def get_districts_from_triangles(
             print('s', end='')
         s = sum([len(d.polygons) for d in districts])
         # print(s, end='')
-        if s > 486:
-            print(s)
+        # if s > 486:
+        #     print(s)
         print('.', end='')
     post = [(len(d.polygons), d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
     if n_parties == 3:
