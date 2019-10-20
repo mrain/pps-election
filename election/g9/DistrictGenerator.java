@@ -379,54 +379,79 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             districts[2].add(district2);
             districts[2].add(district3);
 
-            double[][] per = new double[3][3];
+            if(numParties == 3) {
 
-            per[0] = getPercentages(districts[0], 0);
-            per[1] = getPercentages(districts[1], 0);
-            per[2] = getPercentages(districts[2], 0);
+                double[][] per = new double[3][3];
 
-            double[][] per1 = new double[3][3];
+                per[0] = getPercentages(districts[0], 0);
+                per[1] = getPercentages(districts[1], 0);
+                per[2] = getPercentages(districts[2], 0);
 
-            per1[0] = getPercentages(districts[0], 1);
-            per1[1] = getPercentages(districts[1], 1);
-            per1[2] = getPercentages(districts[2], 1);
+                double[][] per1 = new double[3][3];
 
-            double[][] per2 = new double[3][3];
+                per1[0] = getPercentages(districts[0], 1);
+                per1[1] = getPercentages(districts[1], 1);
+                per1[2] = getPercentages(districts[2], 1);
 
-            per2[0] = getPercentages(districts[0], 2);
-            per2[1] = getPercentages(districts[1], 2);
-            per2[2] = getPercentages(districts[2], 2);
+                double[][] per2 = new double[3][3];
 
-            int[] rep = new int[3];
-            double[] waste = new double[3];
-            getWaste(rep, waste, per, repNum);
+                per2[0] = getPercentages(districts[0], 2);
+                per2[1] = getPercentages(districts[1], 2);
+                per2[2] = getPercentages(districts[2], 2);
 
-            int[] rep1 = new int[3];
-            double[] waste1 = new double[3];
-            getWaste(rep1, waste1, per1, repNum);
+                int[] rep = new int[3];
+                double[] waste = new double[3];
+                getWaste(rep, waste, per, repNum);
 
-            int[] rep2 = new int[3];
-            double[] waste2 = new double[3];
-            getWaste(rep2, waste2, per2, repNum);
+                int[] rep1 = new int[3];
+                double[] waste1 = new double[3];
+                getWaste(rep1, waste1, per1, repNum);
 
-            return districts[getMaxRep(rep1, waste1)];
+                int[] rep2 = new int[3];
+                double[] waste2 = new double[3];
+                getWaste(rep2, waste2, per2, repNum);
+
+                return districts[getMaxRep(rep1, waste1)];
+            }
+            else {
+
+                double[][] per = new double[2][2];
+
+                per[0] = getPercentages(districts[0], 0);
+                per[1] = getPercentages(districts[1], 0);
+
+                double[][] per1 = new double[2][2];
+
+                per1[0] = getPercentages(districts[0], 1);
+                per1[1] = getPercentages(districts[1], 1);
+
+                int[] rep = new int[2];
+                double[] waste = new double[2];
+                getWaste(rep, waste, per, repNum);
+
+                int[] rep1 = new int[2];
+                double[] waste1 = new double[2];
+                getWaste(rep1, waste1, per1, repNum);
+
+                return districts[getMaxRep1(rep1, waste1)];
+            }
             //if(!last) return districts[getMaxPer(per, per2)];
             //else return districts[getMaxRep(rep1, waste1)];
             //return districts[getMaxEfficiency(waste1, waste2, waste)];
             //return districts[getMinWaste(waste1)];
             //return districts[getMaxWaste(waste, waste2)];
-            //if(!last) return districts[getGreedy(rep1, rep2, rep, waste1, waste, waste2)];
-            //else return districts[getMaxRep(rep, waste1)];
+            //if(!last) return districts[getGreedy(rep2, rep, rep1, waste2, per1, per)];
+            //else return districts[getMaxRep(rep2, waste2)];
         }
     }
 
-    public int getGreedy(int[] rep1, int[] rep2, int[] rep, double[] waste1, double[] waste, double[] waste2) {
-        for(int i = 0; i < 3; i++) {
+    public int getGreedy(int[] rep1, int[] rep2, int[] rep, double[] waste1, double[][] per, double[][] per2) {
+        for(int i = 0; i < numParties; i++) {
             int temp = rep1[i];
             if(temp > rep2[i] && temp > rep[i]) return getMaxRep(rep1, waste1);
         }
         //System.out.println("Not the biggest");
-        return getMaxWaste(waste, waste2);
+        return getMaxPer(per, per2);
     }
 
     public int getMaxRep(int[] rep, double[] waste) {
@@ -454,13 +479,25 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         }
     }
 
+    public int getMaxRep1(int[] rep, double[] waste) {
+        if(rep[0] == rep[1]) {
+            return getMinIndex(waste);
+        }
+
+        else if(rep[0] > rep[1]) {
+            return 0;
+        }
+
+        else return 1;
+    }
+
     public int getMinWaste(double[] waste) {
         return getMinIndex(waste);
     }
 
     public int getMaxWaste(double[] waste, double[] waste1) {
-        double[] totalWaste = new double[3];
-        for(int i = 0; i < 3; i++) {
+        double[] totalWaste = new double[numParties];
+        for(int i = 0; i < numParties; i++) {
             totalWaste[i] = waste[i] + waste1[i];
         }
 
@@ -468,7 +505,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     }
 
     public int getMaxEfficiency(double[] our, double[] waste1, double[] waste2) {
-        double gap[] = new double[3];
+        double gap[] = new double[numParties];
         for(int i = 0; i < 3; i++) {
             gap[i] = our[i] - waste1[i] - waste2[i];
         }
@@ -476,8 +513,8 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     }
 
     public int getMaxPer(double[][] per, double[][] per2) {
-        double[] percent = new double[3];
-        for(int i = 0; i < 3; i++) {
+        double[] percent = new double[numParties];
+        for(int i = 0; i < numParties; i++) {
             percent[i] = per[0][i] + per2[0][i] + per[1][i] + per2[1][i] + per[2][i] + per2[2][i]; 
         }
 
@@ -491,7 +528,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         double min = 100000000.;
         int index = 1;
 
-        for(int i = 0; i < 3; i++) {
+        for(int i = 0; i < numParties; i++) {
             if(waste[i] < min) {
                 min = waste[i];
                 index = i;
@@ -504,7 +541,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         double max = 0;
         int index = 1;
 
-        for(int i = 0; i < 3; i++) {
+        for(int i = 0; i < numParties; i++) {
             if(waste[i] > max) {
                 max = waste[i];
                 index = i;
@@ -517,7 +554,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         double max = 0;
         int index = 1;
 
-        for(int i = 0; i < 3; i++) {
+        for(int i = 0; i < numParties; i++) {
             if(rep[i] > max) {
                 max = rep[i];
                 index = i;
@@ -527,8 +564,8 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     }
 
     public void getWaste(int[] rep, double[] waste, double[][] per, int repPerDistrict) {
-        for(int i = 0; i < 3; i++) {
-            for(int j = 0; j < 3; j++) {
+        for(int i = 0; i < numParties; i++) {
+            for(int j = 0; j < numParties; j++) {
                 if(repPerDistrict == 3) {
                     if(per[i][j] > .75) {
                         rep[i] += 3;
@@ -560,13 +597,13 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
     }
 
     public double[] getPercentages(List<District> districts, int party) {
-        int[][] count = new int[3][3];
-        for(int i = 0 ; i < 3; i++) {
+        int[][] count = new int[numParties][numParties];
+        for(int i = 0 ; i < numParties; i++) {
             List<Voter> voters = districts.get(i).voters;
             for(Voter v: voters) {
                 double max = 0;
                 int index = 0;
-                for(int j = 0; j < 3; j++) {
+                for(int j = 0; j < numParties; j++) {
                     if(v.getPreference().get(j) > max) {
                         max = v.getPreference().get(j);
                         index = j;
@@ -576,8 +613,8 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             }
         }
 
-        double[] total = new double[3];
-        for(int i = 0; i < 3; i++) {
+        double[] total = new double[numParties];
+        for(int i = 0; i < numParties; i++) {
             total[i] = Double.valueOf(count[i][party]) / Double.valueOf(districts.get(i).voters.size());
         }
 
