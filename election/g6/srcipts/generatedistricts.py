@@ -37,7 +37,7 @@ if __name__ == '__main__':
         help='Path to map file to gerrymander'
     )
     parser.add_argument(
-        '--n-iters', type=int, default=700,
+        '--n-iters', type=int, default=7000,
         help='Number of iteration to run gerrymandering for'
     )
     parser.add_argument(
