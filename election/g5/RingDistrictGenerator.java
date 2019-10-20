@@ -112,7 +112,7 @@ public class RingDistrictGenerator implements DistrictGenerator {
 
                 voterCount = Run.countInclusion(voters, triangle);
                 System.out.println(topY);
-            } while (needsMoreVoters(voterCount - innerVoterCount, numTriangles == 3 ? 20:22));
+            } while (needsMoreVoters(voterCount - innerVoterCount, repPerDistrict == 3 ? 20:22));
             System.out.println("found an outer triangle");
             System.out.println(voterCount - innerVoterCount);
 
