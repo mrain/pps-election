@@ -47,7 +47,7 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
             for (Cluster cluster : clusters) {
                 centroids.add(cluster.getCentroid());
             }
-            Voronoi voronoi = new Voronoi(voters, centroids);
+            Voronoi voronoi = new Voronoi(voters, clusters);
             voronoi.execute();
             voronoi.print();
         }
@@ -401,18 +401,30 @@ public class DistrictGenerator implements election.sim.DistrictGenerator {
         List<Cluster> clusters = kmeans.getClusters();
 
         // Execute Voronoi
-        List<NewPoint> centroids = new ArrayList<>();
-        for (Cluster cluster : clusters) {
-            centroids.add(cluster.getCentroid());
-        }
         int numCentroid = 1;
-        for(NewPoint centroid : centroids) {
-        	System.out.println("Centroid for cluster " + numCentroid + ": (" + centroid.getX() + ", " + centroid.getY() + ")");
+        for(Cluster cluster : clusters) {
+        	NewPoint centroid = cluster.getCentroid();
+        	System.out.println("Before - Centroid for cluster " + numCentroid + ": (" + centroid.getX() + ", " + centroid.getY() + ")");
         	numCentroid++;
         }
-        Voronoi voronoi = new Voronoi(voters, centroids);
+        Voronoi voronoi = new Voronoi(voters, clusters);
         voronoi.execute();
         voronoi.print();
+        numCentroid = 1;
+        for(Cluster cluster : clusters) {
+        	NewPoint centroid = cluster.getCentroid();
+        	System.out.println("After - Centroid for cluster " + numCentroid + ": (" + centroid.getX() + ", " + centroid.getY() + ")");
+        	numCentroid++;
+        }
+        String pythonInput = "[";
+        for(int i = 0; i < clusters.size(); i++) {
+        	NewPoint centroid = clusters.get(i).getCentroid();
+        	pythonInput += "[" + centroid.getX() + ", " + centroid.getY() + "]";
+        	if(i != clusters.size() - 1)
+        		pythonInput += ", ";
+        }
+        pythonInput += "]";
+        System.out.println("Centroids for Python script: " + pythonInput);
     }
 }
 
