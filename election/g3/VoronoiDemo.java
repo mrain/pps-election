@@ -48,7 +48,7 @@ public class VoronoiDemo implements DrawListener {
                 Point q = new Point(i, j);
                 if ((nearest[i][j] == null) || (q.distance(p) < q.distance(nearest[i][j]))) {
                     nearest[i][j] = p;
-                    draw.filledSquare(i+0.5, j+0.5, 0.5);
+                    draw.filledSquare(i + 0.5, j + 0.5, 0.5);
                 }
             }
         }

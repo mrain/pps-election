@@ -5,6 +5,7 @@ from collections import defaultdict
 import numpy as np
 from shapely.geometry import Polygon
 
+from election.g6.src import bug_fix
 from election.g6.src.voter import Voter
 
 num_parties = 3
@@ -192,8 +193,7 @@ def get_initial_triangles(voters: List[Voter], threshold: float = 333333. // (81
 
 
 def get_triangles(voters: List[Voter], representatives_per_district: int, seed: int) -> List[Dict]:
-    n_districts = 81.
-    n_triangles = n_districts * 7.
-    threshold = len(voters) / n_triangles
-    triangles = get_initial_triangles(voters, threshold, seed)
-    return triangles
+    if representatives_per_district == 3:
+        return bug_fix.get_triangles(voters, 22, 1)
+    else:
+        return bug_fix.get_triangles(voters, 38, 4)

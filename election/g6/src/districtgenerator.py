@@ -2,15 +2,22 @@ import random
 from collections import defaultdict
 from itertools import combinations, product
 from typing import List, Dict
+import numpy as np
 
 import metis
+import nxmetis
 from shapely.geometry import Polygon
 
 from election.g6.src import dist_analysis
 from election.g6.src.voter import Voter
 from election.g6.src.district import District
 from election.g6.src.metrics import wasted_vote_metric, get_metric, wasted_percentage_difference
-from election.g6.src.utils import check_if_node_is_near_part_boundary
+from election.g6.src.utils import (
+    check_if_node_is_near_part_boundary,
+    check_if_node_is_near_part,
+    find_adjacent_district_with_most_triangles,
+    check_if_removing_polygon_is_okay
+)
 
 
 def get_districts_from_triangles(
@@ -23,29 +30,115 @@ def get_districts_from_triangles(
         gerrymander_for: int,
         seed: int
 ) -> List[Polygon]:
+    n_parties = 3
+    seed = random.randint(1, 9999999)
+    # seed = 4736102
+    # seed = 1072358
+    seed = 4358665
+
+    # seed=81
+    print("SEED", seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    # print('Making initial partition')
+    # (edgecuts, parts) = metis.part_graph(
+    #     graph,
+    #     n_districts,
+    #     ncuts=100,  # number of different cuts to try
+    #     niter=2000,  # number of iterations of an algorithm
+    #     contig=True,  # force partitions to be contiguous
+    #     recursive=True
+    #     # ubvec=[1.09],  # allowed constraint imbalance
+    # )
+    # print('Forming districts')
+    # districts = []
+    # for i in range(n_districts):
+    #     districts.append(District(representatives_per_district, n_parties))
+    # for index, part in enumerate(parts):
+    #     graph.nodes[index]['part'] = part
+    #     districts[part].append_triangle((index, triangles[index]))
     print('Making initial partition')
-    n_parties = len(triangles[0]['party_distribution'].keys())
-    (edgecuts, parts) = metis.part_graph(
+    (edgecuts, parts) = nxmetis.partition(
         graph,
         n_districts,
-        ncuts=100,  # number of different cuts to try
-        niter=2000,  # number of iterations of an algorithm
-        contig=True,  # force partitions to be contiguous
-        ubvec=[1.09],  # allowed constraint imbalance
+        # ctype='shem',
+        # rtype='sep2sided',
+        # node_weight='population',
+        options=nxmetis.types.MetisOptions(
+            # ctype=nxmetis.enums.MetisCType.shem,
+            iptype=nxmetis.enums.MetisIPType.node,
+            ncuts=100,  # number of different cuts to try
+            niter=4000,  # number of iterations of an algorithm
+            contig=True
+        ),
+        # ubvec=[1.09],  # allowed constraint imbalance
     )
     print('Forming districts')
     districts = []
     for i in range(n_districts):
         districts.append(District(representatives_per_district, n_parties))
-    for index, part in enumerate(parts):
-        graph.nodes[index]['part'] = part
-        districts[part].append_triangle(triangles[index])
+    for part, part_triangles in enumerate(parts):
+        for index in part_triangles:
+            graph.nodes[index]['part'] = part
+            districts[part].append_triangle((index, triangles[index]))
 
+    print(len(districts))
+    pre = [(len(d.polygons), d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
+    done = []
+    not_all_good = True
+    num_it = 0
+    total_num_it = 0
+    reset_each = 100
+    while not_all_good:
+        total_num_it += 1
+        num_it += 1
+        if num_it > reset_each:
+            num_it = 0
+            done = []
+        if total_num_it > 3000:
+            reset_each = 50
+        pre = [(len(d.polygons), d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
+        print('|', end='')
+        not_all_good = False
+        for i, d in enumerate(districts):
+            if len(d.polygons) < 6:
+                not_all_good = True
+                made_flip = False
+                closest_districts = find_adjacent_district_with_most_triangles(i, d, districts, graph)
+                for potential_district_id, potential_district in closest_districts:
+                    if potential_district_id in done:
+                        continue
+                    if made_flip:
+                        break
+                    possible_triangles = []
+                    for index, polygon in potential_district.polygons:
+                        is_adj = check_if_node_is_near_part(graph, index, i)
+                        if is_adj and check_if_removing_polygon_is_okay(potential_district, index):
+                            possible_triangles.append((index, polygon))
+                    if len(possible_triangles) > 0:
+                        index, triangle_to_swap = random.sample(possible_triangles, 1)[0]
+                        made_flip = True
+                        potential_district.drop_triangle_by_id(index)
+                        d.append_triangle((index, triangle_to_swap))
+                        done.append(potential_district_id)
+                        graph.nodes[index]['part'] = i
+                if made_flip:
+                    print('.' + str(len(possible_triangles)), end='')
+                else:
+                    print(',' + str(len(possible_triangles)), end='')
+
+
+    pre = [(len(d.polygons), d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
+    for d in districts:
+        if d.is_population_invalid():
+            print("AAAAAAAAA Pop\n\n\n\n\n")
     if n_parties == 3:
         pre_wasted = wasted_percentage_difference(districts, n_parties)
     else:
         pre_wasted = wasted_vote_metric(districts, n_parties)
     # Iterative Gerrymandering
+    s = sum([len(d.polygons) for d in districts])
+    print(s, end='')
     nsample = 50
     for i in range(n_iterations):
         # sample random vertices pairs
@@ -80,7 +173,8 @@ def get_districts_from_triangles(
         swapped_nodes = []
         swapped_districts = []
         for swap_a, swap_b in swap_proposals:
-            if swap_a[1] in swapped_nodes or swap_b[1] in swapped_nodes or swap_a[0] in swapped_districts or swap_b[0] in swapped_districts:
+            if (swap_a[1] in swapped_nodes) or (swap_b[1] in swapped_nodes) or (
+                    swap_a[0] in swapped_districts) or (swap_b[0] in swapped_districts):
                 continue
             district_a = districts[swap_a[0]]
             district_b = districts[swap_b[0]]
@@ -91,16 +185,19 @@ def get_districts_from_triangles(
             triangle_a = triangles[swap_a[1]]
             triangle_b = triangles[swap_b[1]]
             district_a_after = District(representatives_per_district, n_parties)
-            for polygon in district_a.polygons:
+            for q, polygon in district_a.polygons:
                 if polygon != triangle_a:
-                    district_a_after.append_triangle(polygon)
-            district_a_after.append_triangle(triangle_b)
+                    district_a_after.append_triangle((q, polygon))
+            district_a_after.append_triangle((swap_b[1], triangle_b))
             district_b_after = District(representatives_per_district, n_parties)
-            for polygon in district_b.polygons:
+            for q, polygon in district_b.polygons:
                 if polygon != triangle_b:
-                    district_b_after.append_triangle(polygon)
-            district_b_after.append_triangle(triangle_a)
+                    district_b_after.append_triangle((q, polygon))
+            district_b_after.append_triangle((swap_a[1], triangle_a))
             if district_a_after.is_invalid() or district_b_after.is_invalid():
+                continue
+            if district_a_after.is_population_invalid() or district_b_after.is_population_invalid():
+                print("UPsss")
                 continue
             if n_parties == 3:
                 after_swap = wasted_percentage_difference([district_a_after, district_b_after], n_parties)
@@ -110,6 +207,11 @@ def get_districts_from_triangles(
             metric = get_metric(before_swap, after_swap, gerrymander_for, n_parties)
             # metric = after_swap[1] - before_swap[1]
             # metric = before_swap[0] - after_swap[0]
+            if (district_a.is_population_invalid() and not district_a_after.is_population_invalid()) or (
+                    district_b.is_population_invalid() and not district_b_after.is_population_invalid()
+            ):
+                print("Fix pop\n\n\n\n")
+                metric = 99999
             if metric > 0:
                 swapped_nodes.append(swap_a[1])
                 swapped_nodes.append(swap_b[1])
@@ -121,13 +223,19 @@ def get_districts_from_triangles(
             district_b = districts[swap_b[0]]
             triangle_a = triangles[swap_a[1]]
             triangle_b = triangles[swap_b[1]]
-            district_a.drop_triangle(triangle_a)
-            district_a.append_triangle(triangle_b)
-            district_b.drop_triangle(triangle_b)
-            district_b.append_triangle(triangle_a)
+            # district_a.drop_triangle(triangle_a)
+            district_a.drop_triangle_by_id(swap_a[1])
+            district_a.append_triangle((swap_b[1], triangle_b))
+            # district_b.drop_triangle(triangle_b)
+            district_b.drop_triangle_by_id(swap_b[1])
+            district_b.append_triangle((swap_a[1], triangle_a))
             graph.nodes[swap_a[1]]['part'] = swap_b[0]
             graph.nodes[swap_b[1]]['part'] = swap_a[0]
             print('s', end='')
+        s = sum([len(d.polygons) for d in districts])
+        # print(s, end='')
+        # if s > 486:
+        #     print(s)
         print('.', end='')
     post = [(len(d.polygons), d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
     if n_parties == 3:
@@ -137,6 +245,10 @@ def get_districts_from_triangles(
     print('Returning polygons')
     print(pre_wasted, post_wasted)
     print(post)
+    print(len(districts))
+    for d in districts:
+        if d.is_population_invalid():
+            print("AAAAAAAAA Pop\n\n\n\n\n")
     return [d.get_one_polygon() for d in districts]
 
 
