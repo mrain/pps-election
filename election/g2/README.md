@@ -41,6 +41,6 @@ The results below are preliminary based on our code as of Wednesday night. They 
 | tour3.map | 243 districts | Party 1 | [120, 66, 57] | |
 | | | Party 2 | [68, 120, 55] | |
 | | | Party 3 | [65, 55, 123] | |
-| tour3.map | 81 districts | Party 1 | [32, 27, 22] | [83, 82, 78] |
-| | | Party 2 | [22, 34, 25] | [80, 82, 81] | 
-| | | Party 3 | [23, 21, 37] | [80, 75, 88] |
+| tour3.map | 81 districts | Party 1 | [33, 23, 25] | [89, 75, 79] |
+| | | Party 2 | [26, 36, 19] | [80, 91, 72] | 
+| | | Party 3 | [24, 26, 31] | [76, 77, 90] |
