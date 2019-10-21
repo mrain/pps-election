@@ -1,0 +1,2 @@
+java.lang.IllegalArgumentException: District contains too much/few voters (30136): 3 906.5064243892539 161.9356231390948 821.9893617782702 161.9356231390948 821.9893617782702 -1099.8560916028894
+	at election.sim.Run.main(Run.java:84)

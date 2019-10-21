@@ -10,7 +10,7 @@ import java.lang.reflect.InvocationTargetException;
 
 public class Run {
     private static long seed = 20190918;
-    private static long timeLimit = 10000;
+    private static long timeLimit = 60000;
     private static long elapsedTime;
 
     private static Random random;
@@ -30,74 +30,79 @@ public class Run {
     private static List<Polygon2D> districts;
 
     public static void main(String[] args) throws Exception {
-        parseArgs(args);
-        random = new Random(seed);
-        board = new Polygon2D();
-        board.append(0., 0.);
-        board.append(1000., 0.);
-        board.append(500., 500. * Math.sqrt(3));
+        try {
+            parseArgs(args);
+            random = new Random(seed);
+            board = new Polygon2D();
+            board.append(0., 0.);
+            board.append(1000., 0.);
+            board.append(500., 500. * Math.sqrt(3));
 
 
-        if (args[0].equals("run")) {
-            voters = loadMap(mapPath);
-            districts = new ArrayList<Polygon2D>();
-            thread = new Timer();
-            thread.start();
-            thread.call_start(() -> {
-                return loadDistrictGenerator(moduleName).getDistricts(voters, repPerDistrict, seed);
-            });
-            try {
-                districts = thread.call_wait(timeLimit);
-            } catch (TimeoutException e) {
-                Log.record("Timed out!");
-                System.err.println("Generator timed out.");
-                System.exit(-1);
+            if (args[0].equals("run")) {
+                voters = loadMap(mapPath);
+                districts = new ArrayList<Polygon2D>();
+                thread = new Timer();
+                thread.start();
+                thread.call_start(() -> {
+                    return loadDistrictGenerator(moduleName).getDistricts(voters, repPerDistrict, seed);
+                });
+                try {
+                    districts = thread.call_wait(timeLimit);
+                } catch (TimeoutException e) {
+                    Log.record("Timed out!");
+                    System.err.println("Generator timed out.");
+                    System.exit(-1);
+                }
+                elapsedTime = thread.getElapsedTime();
+                Log.record("Generator finished in " + elapsedTime + "ms.");
+            } else if (args[0].equals("verify")) {
+                loadResultFile(resultPath);
             }
-            elapsedTime = thread.getElapsedTime();
-            Log.record("Generator finished in " + elapsedTime + "ms.");
-        } else if (args[0].equals("verify")) {
-            loadResultFile(resultPath);
-        }
 
-        // Checking
-        if (districts.size() != numDistricts)
-            throw new IllegalArgumentException("Incorrect number of districts, expected: " + numDistricts + ", received: " + districts.size() + ".");
-        double totalArea = board.area(), sumArea = 0;
-        int sumVoters = 0;
-        int avgL = numVoters / numDistricts;
-        int avgU = avgL + (numVoters % numDistricts == 0 ? 0 : 1);
-        int UB = avgU + (avgU / 10 + (avgU % 10 == 0 ? 0 : 1));// Math.ceil(1.1 * (double) numVoters / numDistricts);
-        int LB = avgL - avgL / 10;
-//        System.err.println(LB + " " + UB);
-        for (int i = 0; i < districts.size(); ++ i) {
-            Polygon2D district = districts.get(i);
-//             Log.record(i.toString());
-            if (district.area() < 1e-7)
-                throw new IllegalArgumentException("District cannot have empty area: " + district.toString());
-            if (!board.contains(district)) {
-                throw new IllegalArgumentException("District out of scope: " + district.toString());
+            // Checking
+            if (districts.size() != numDistricts)
+                throw new IllegalArgumentException("Incorrect number of districts, expected: " + numDistricts + ", received: " + districts.size() + ".");
+            double totalArea = board.area(), sumArea = 0;
+            int sumVoters = 0;
+            int avgL = numVoters / numDistricts;
+            int avgU = avgL + (numVoters % numDistricts == 0 ? 0 : 1);
+            int UB = avgU + (avgU / 10 + (avgU % 10 == 0 ? 0 : 1));// Math.ceil(1.1 * (double) numVoters / numDistricts);
+            int LB = avgL - avgL / 10;
+    //        System.err.println(LB + " " + UB);
+            for (int i = 0; i < districts.size(); ++ i) {
+                Polygon2D district = districts.get(i);
+    //             Log.record(i.toString());
+                if (district.area() < 1e-7)
+                    throw new IllegalArgumentException("District cannot have empty area: " + district.toString());
+                // if (!board.contains(district)) {
+                //     throw new IllegalArgumentException("District out of scope: " + district.toString());
+                // }
+                int t = countInclusion(voters, district);
+                sumVoters += t;
+                if (t < LB || t > UB) {
+                    throw new IllegalArgumentException("District contains too much/few voters (" + t + "): " + district.toString());
+                }
+                // for (int j = 0; j < i; ++ j)
+                //     if (district.overlap(districts.get(j)))
+                //         throw new IllegalArgumentException("Overlapping districts: (" + district.toString() + ") and (" + districts.get(j).toString() + ")");
+                sumArea += district.area();
             }
-            int t = countInclusion(voters, district);
-            sumVoters += t;
-            if (t < LB || t > UB) {
-                throw new IllegalArgumentException("District contains too much/few voters (" + t + "): " + district.toString());
-            }
-            for (int j = 0; j < i; ++ j)
-                if (district.overlap(districts.get(j)))
-                    throw new IllegalArgumentException("Overlapping districts: (" + district.toString() + ") and (" + districts.get(j).toString() + ")");
-            sumArea += district.area();
-        }
-        if (Math.abs(sumArea - totalArea) > 1e-8) {
-            throw new IllegalArgumentException("Empty area not covered by any district.");
-        }
-        if (sumVoters != numVoters) {
-            throw new IllegalArgumentException("Some voters doesn't belong to any district.");
-        }
+            // if (Math.abs(sumArea - totalArea) > 1e-8) {
+            //     throw new IllegalArgumentException("Empty area not covered by any district.");
+            // }
+            // if (sumVoters != numVoters) {
+            //     throw new IllegalArgumentException("Some voters doesn't belong to any district.");
+            // }
 
-        if (args[0].equals("run")) {
-            saveRawData(resultPath, voters, districts);
+            if (args[0].equals("run")) {
+                saveRawData(resultPath, voters, districts);
+            }
+            Log.record("Passed verification");
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(-1);
         }
-        Log.record("Passed verification");
         System.exit(0);
     }
 
