@@ -2,6 +2,7 @@ import random
 from collections import defaultdict
 from itertools import combinations, product
 from typing import List, Dict
+import numpy as np
 
 import metis
 import nxmetis
@@ -29,7 +30,16 @@ def get_districts_from_triangles(
         gerrymander_for: int,
         seed: int
 ) -> List[Polygon]:
-    n_parties = 2
+    n_parties = 3
+    seed = random.randint(1, 9999999)
+    # seed = 4736102
+    # seed = 1072358
+    seed = 4358665
+
+    # seed=81
+    print("SEED", seed)
+    random.seed(seed)
+    np.random.seed(seed)
     # print('Making initial partition')
     # (edgecuts, parts) = metis.part_graph(
     #     graph,
@@ -119,7 +129,9 @@ def get_districts_from_triangles(
 
 
     pre = [(len(d.polygons), d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
-
+    for d in districts:
+        if d.is_population_invalid():
+            print("AAAAAAAAA Pop\n\n\n\n\n")
     if n_parties == 3:
         pre_wasted = wasted_percentage_difference(districts, n_parties)
     else:
@@ -195,6 +207,11 @@ def get_districts_from_triangles(
             metric = get_metric(before_swap, after_swap, gerrymander_for, n_parties)
             # metric = after_swap[1] - before_swap[1]
             # metric = before_swap[0] - after_swap[0]
+            if (district_a.is_population_invalid() and not district_a_after.is_population_invalid()) or (
+                    district_b.is_population_invalid() and not district_b_after.is_population_invalid()
+            ):
+                print("Fix pop\n\n\n\n")
+                metric = 99999
             if metric > 0:
                 swapped_nodes.append(swap_a[1])
                 swapped_nodes.append(swap_b[1])
@@ -229,6 +246,9 @@ def get_districts_from_triangles(
     print(pre_wasted, post_wasted)
     print(post)
     print(len(districts))
+    for d in districts:
+        if d.is_population_invalid():
+            print("AAAAAAAAA Pop\n\n\n\n\n")
     return [d.get_one_polygon() for d in districts]
 
 
