@@ -85,15 +85,17 @@ plt.scatter(centers[:, 0], centers[:, 1], c='black', s=300)
 # In[28]:
 
 
-plt.show()
+# plt.show()
 
 
 # In[29]:
 
 
 from scipy.spatial import Voronoi, voronoi_plot_2d
+print("Before Voronoi")
 vor = Voronoi(centers)
-voronoi_plot_2d(vor)
-plt.show()
+print("Just after Voronoi")
+# voronoi_plot_2d(vor)
+# plt.show()
 print(vor.vertices)
 print(vor.regions)
