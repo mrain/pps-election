@@ -54,9 +54,9 @@ def main(options):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--module', '-m', type=str, default="election.g6.src.trianglegenerator")
-    parser.add_argument('--input', '-i', type=str, default="maps/tournaments/tour2.map")
-    parser.add_argument('--output', '-o', type=str, default="maps/final/25_1")
+    parser.add_argument('--input', '-i', type=str, default="maps/tournaments/tour3.map")
+    parser.add_argument('--output', '-o', type=str, default="maps/final/23_3rep")
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--representatives', type=int, default=1)
+    parser.add_argument('--representatives', type=int, default=3)
     args = parser.parse_args()
     main(args)

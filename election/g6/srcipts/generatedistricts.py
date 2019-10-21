@@ -41,11 +41,11 @@ if __name__ == '__main__':
         help='Number of iteration to run gerrymandering for'
     )
     parser.add_argument(
-        '--gerrymander-for', type=int, default=1,
+        '--gerrymander-for', type=int, default=0,
         help='Party index for which to gerrymander [0, 1, 2]'
     )
     parser.add_argument(
-        '--output', '-o', type=str, default="maps/final/25_1reps_1party.map",
+        '--output', '-o', type=str, default="maps/final/25_1reps_0party.map",
         help='A path where to save the final map'
     )
     parser.add_argument(

@@ -56,3 +56,12 @@ class District:
     def is_invalid(self):
         s = self.get_one_polygon()
         return type(s) == shapely.geometry.MultiPolygon
+
+    def is_population_invalid(self):
+        pop = self.get_population()
+        proper_pop = (333333. / (3. / self.representatives_per_district * 81.))
+        if pop > 1.1 * proper_pop:
+            return True
+        if pop < 0.9 * proper_pop:
+            return True
+        return False

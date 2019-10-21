@@ -77,11 +77,16 @@ def get_districts_from_triangles(
     done = []
     not_all_good = True
     num_it = 0
+    total_num_it = 0
+    reset_each = 100
     while not_all_good:
+        total_num_it += 1
         num_it += 1
-        if num_it > 100:
+        if num_it > reset_each:
             num_it = 0
             done = []
+        if total_num_it > 3000:
+            reset_each = 50
         pre = [(len(d.polygons), d.get_population(), 3703 < d.get_population() <= 4526) for d in districts]
         print('|', end='')
         not_all_good = False
@@ -108,7 +113,7 @@ def get_districts_from_triangles(
                         done.append(potential_district_id)
                         graph.nodes[index]['part'] = i
                 if made_flip:
-                    print('.', end='')
+                    print('.' + str(len(possible_triangles)), end='')
                 else:
                     print(',' + str(len(possible_triangles)), end='')
 
@@ -178,6 +183,9 @@ def get_districts_from_triangles(
                     district_b_after.append_triangle((q, polygon))
             district_b_after.append_triangle((swap_a[1], triangle_a))
             if district_a_after.is_invalid() or district_b_after.is_invalid():
+                continue
+            if district_a_after.is_population_invalid() or district_b_after.is_population_invalid():
+                print("UPsss")
                 continue
             if n_parties == 3:
                 after_swap = wasted_percentage_difference([district_a_after, district_b_after], n_parties)
