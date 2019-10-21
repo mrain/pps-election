@@ -481,7 +481,7 @@ public class RingDistrictGenerator implements DistrictGenerator {
       numDistricts = 243 / repPerDistrict;
       random = new Random(seed);
       avgVotersPerDistrict = 333333 / numDistricts;
-      int gerryManderParty = 1;
+      int gerryManderParty = 0;
 			// System.out.println(compactGerry(voters));
 
       // 81 Districts
