@@ -1,5 +1,6 @@
 package election;
 
+import java.lang.reflect.Array;
 import java.util.*;
 
 import com.seisw.util.geom.Poly;
@@ -8,6 +9,7 @@ import election.Subtraction;
 import election.Voter;
 import javafx.util.Pair;
 import java.awt.geom.*;
+import java.util.stream.Collectors;
 
 public class G1DistrictGenerator implements election.DistrictGenerator {
     private static final double EPSILON = 1e-7;
@@ -20,6 +22,8 @@ public class G1DistrictGenerator implements election.DistrictGenerator {
     private double average1District;
     private double max1District;
     private double min1District;
+    private HashMap<Pair<Double, Double>, Polygon2D> triangleMap;
+    private HashMap<Pair<Double, Double>, List<Voter>> voterMap;
 
     @Override
     public List<Polygon2D> getDistricts(List<Voter> voters, int repPerDistrict, long seed) {
@@ -28,62 +32,187 @@ public class G1DistrictGenerator implements election.DistrictGenerator {
         this.numDistricts = 243 / repPerDistrict;
         this.voterDensity = voters.size()*1.0/(Math.sqrt(3)/4*scale*scale);
         this.average1District = 1.0*voters.size()/numDistricts;
-//        this.average1District = 500;
-        this.max1District = 1.1*this.average1District;
-        this.min1District = 0.9*this.average1District;
-        int numClusters = 81;
-        int numTopClusters = 10;
+        this.max1District = 1.1*voters.size()/numDistricts;
+        this.min1District = 0.9*voters.size()/numDistricts;
+        int numClusters = 10;
+        int numTopClusters = 30;
+        double offset = 5.0;
+        double base = 10.0;
+        double area = base * base;
         sortVotersByX(voters);
         this.votersSortedByX = new ArrayList<>(voters);
 
-        List<Polygon2D> districts = new ArrayList<>();
-//        Map<Point2D, List<Voter>> clusters = getClusters(voters, numClusters);
-//        List<Polygon2D> squareDistricts = new ArrayList<>();
-//
-//        for (Map.Entry<Point2D, List<Voter>> cluster : clusters.entrySet()) {
-//            Polygon2D squareDistrict = generateSquareDistrict(cluster, squareDistricts);
-//            squareDistricts.add(squareDistrict);
-//        }
-//
-//        List<Pair<Polygon2D, Double>> squareDistrictsWithPref = new ArrayList<>();
-//
-//        Set<Polygon2D> squareDistrictsSet = new HashSet<>(squareDistricts);
-//        for (Polygon2D squareDistrict : squareDistricts) {
-//            // We know it is a square. Otherwise we're in trouble.
-//            List<Voter> squareDistrictVoters = getVotersInSquare(squareDistrict);
-//            double rank = calculateVoterPref(squareDistrictVoters);
-//            System.out.println("RANK: " + rank);
-//            squareDistrictsWithPref.add(new Pair(squareDistrict, rank));
-//            // rank the square based on voter disparity, the percent of voters who vote in our party's favor
-//            // note that if there are 243 districts this is 52/53%, but if there are 81 districts it's more complicated, could be 77/53/27% or so
-//        }
+        List<Polygon2D> squareDistricts = getClusters(offset, base);
+        assignVoters(offset, base);
+        List<Pair<Polygon2D, Double>> squareDistrictsWithDensity = new ArrayList<>();
 
-//        sortDistrictsByPref(squareDistrictsWithPref);
-//        List<Pair<Polygon2D, Double>> topSquareDistrictPrefs = squareDistrictsWithPref.subList(0, numTopClusters);
-//        for (Pair<Polygon2D, Double> pair : topSquareDistrictPrefs) {
-//            System.out.println("Pref: " + pair.getValue());
-//        }
+        System.out.println("calculateDensity");
+        for(Polygon2D square : squareDistricts){
+            double x = square.getPoints().get(0).getX();
+            double y = square.getPoints().get(0).getY();
+            Pair<Double, Double> center = new Pair(x + base / 2, y + base / 2);
+            double density = voterMap.get(center).size() / area;
+            if(density < 1.5) continue;
+            //System.out.println("getting results");
+            Pair<Polygon2D, Double> squareDistrictWithDensity = new Pair<Polygon2D, Double>(square,density);
+            squareDistrictsWithDensity.add(squareDistrictWithDensity);
+        }
 
-//        Nazli's code generates these square districts based on density.
-//        List<Polygon2D> topSquareDistricts = topSquareDistrictPrefs.stream().map(d -> d.getKey()).collect(Collectors.toList());
-//        for(int i = 0; i < topSquareDistricts.size(); i++){
-//            Polygon2D topSquareDistrict = topSquareDistricts.get(i);
-//            topSquareDistricts.set(i, resizeSquareDistrict(topSquareDistrict, topSquareDistricts));
-//        }
-        List<Polygon2D> topSquareDistricts = getNazlisSquareDistricts();
+        System.out.println(squareDistrictsWithDensity.size());
+        System.out.println("before sort");
+        sortDistrictsByDensity(squareDistrictsWithDensity);
+        System.out.println("sorted");
 
-//        List<Polygon2D> topSquareDistrictsInner = new ArrayList<>();
-//        for (Polygon2D squareDistrict : topSquareDistricts) {
-//            List<Voter> squareDistrictVoters = getVotersInSquare(squareDistrict);
-//            topSquareDistrictsInner.addAll(generateInnerDistricts(squareDistrict, squareDistrictVoters, 0));
-//        }
+        squareDistricts = squareDistrictsWithDensity.stream().map(d -> d.getKey()).collect(Collectors.toList());
 
+        HashSet<Pair<Double, Double>> visited = new HashSet<>();
+        List<Polygon2D> result = new ArrayList<>();
+        System.out.println("enter for loop");
+        int totalPopulation = 0;
+        for(Pair<Polygon2D, Double> polygonPair : squareDistrictsWithDensity){
+            Polygon2D polygon = polygonPair.getKey();
+            double density = polygonPair.getValue();
+            if(density < 0.9) break;
+            double x = polygon.getPoints().get(0).getX();
+            double y = polygon.getPoints().get(0).getY();
+            double centerX = x + base / 2;
+            double centerY = y + base / 2;
+            Pair<Double, Double> center = new Pair(centerX, centerY);
+            boolean contains = false;
+            for (Pair<Double, Double> p : visited) {
+                if (approxEquals(centerX, p.getKey()) && approxEquals(centerY, p.getValue())) contains = true;
+            }
+            if(contains) continue;
+            HashSet<Pair<Double, Double>> squares = new HashSet<>();
+            squares.add(center);
+            int population = voterMap.get(center).size();
+            double minX = centerX - base / 2;
+            double maxX = centerX + base / 2;
+            double minY = centerY - base / 2;
+            double maxY = centerY + base / 2;
+            boolean valid = true;
+            int i = 1;
+            //for(int i = 1; i < 6; i++){
+            double currentDensity = density;
+            while(currentDensity > 0.9 || !isSplittableDistrict(population)){
+                HashSet<Pair<Double, Double>> tmpSquares = new HashSet<>();
+                double tmpPopulation = 0;
+                for(int j = 0 - i; j < i + 1; j++){
+                    for(int k = 0 - i; k < i + 1; k++){
+                        if(j == 0 - i || j == i || k == 0 - i || k == i){ //border value
+                            double deltaX = j * base;
+                            double deltaY = k * base;
+                            Pair<Double, Double> tmpPair = new Pair(centerX + deltaX, centerY + deltaY);
+                            contains = false;
+                            for (Pair<Double, Double> p : visited) {
+                                if (approxEquals(centerX + deltaX, p.getKey()) && approxEquals(centerY + deltaY, p.getValue())) contains = true;
+                            }
+                            if(!contains && triangleMap.containsKey(tmpPair)){
+                                tmpSquares.add(tmpPair);
+                                tmpPopulation += voterMap.get(tmpPair).size();
+                            }
+                        }
+                    }
+                }
+                if(squares.size() + tmpSquares.size() < Math.pow(2*(i+1) - 1, 2)) {
+                    break;
+                }
+                squares.addAll(tmpSquares);
+                population += tmpPopulation;
+                currentDensity = population / (area * squares.size());
+                i++;
+                System.out.println(squares.size());
+                System.out.println("Current density " + currentDensity);
+
+            }
+            System.out.println(population);
+            if(squares.size() > 1 && isSplittableDistrict(population)){
+                visited.addAll(squares);
+                System.out.print("THIS MANY SQUARES: ");
+                System.out.println(squares.size());
+                System.out.println("WITH THIS MANY PEOPLE: " + population);
+                totalPopulation += population;
+                for(Pair<Double, Double> squarePair : squares){
+                    Polygon2D square = triangleMap.get(squarePair);
+                    for(Point2D point : square.getPoints()){
+                        if(point.getX() < minX) minX = point.getX();
+                        if(point.getX() > maxX) maxX = point.getX();
+                        if(point.getY() < minY) minY = point.getY();
+                        if(point.getY() > maxY) maxY = point.getY();
+                    }
+                }
+                Polygon2D newSquare = new Polygon2D();
+                newSquare.append(minX, minY);
+                newSquare.append(minX, maxY);
+                newSquare.append(maxX, maxY);
+                newSquare.append(maxX, minY);
+                result.add(newSquare);
+            }
+        }
+        System.out.println(totalPopulation);
+        if(result.size() > 0) return result;
+
+        for(Polygon2D square : squareDistricts){
+            Pair<Polygon2D, Double> squareDistrictWithDensity = new Pair<Polygon2D, Double>(square,calculateVoterDensity(square));
+            squareDistrictsWithDensity.add(squareDistrictWithDensity);
+        }
+
+        sortDistrictsByDensity(squareDistrictsWithDensity);
+        squareDistricts = squareDistrictsWithDensity.stream().map(d -> d.getKey()).collect(Collectors.toList());
+
+        int size = squareDistricts.size();
+        List<Polygon2D> newSquareDistricts = new ArrayList<Polygon2D>();
+        for(int i = 0; i < size; i++){
+            Polygon2D topSquareDistrict = squareDistricts.get(i);
+            boolean valid = true;
+            for(int j = 0; j < newSquareDistricts.size(); j++){
+                Polygon2D otherSquareDistrict = newSquareDistricts.get(j);
+                for(Point2D point : topSquareDistrict.getPoints()){
+                    if(contains(otherSquareDistrict, point)){
+                        valid = false;
+                        System.out.println("invalid square: " + i);
+                        break;
+                    }
+                }
+                if(!valid) break;
+            }
+            if(valid){
+                Polygon2D newSquareDistrict = resizeSquareDistrict(topSquareDistrict, newSquareDistricts);
+                if(newSquareDistrict != null){
+                    System.out.println(i);
+                    newSquareDistricts.add(newSquareDistrict);
+                }
+            }
+        }
+
+        squareDistricts = newSquareDistricts;
+
+        System.out.println(squareDistricts.size());
+        if(size > 0) return newSquareDistricts;
+        List<Polygon2D> topSquareDistrictsInner = new ArrayList<>();
+        for (Polygon2D squareDistrict :squareDistricts) {
+            List<Voter> squareDistrictVoters = getVotersInSquare(squareDistrict);
+            topSquareDistrictsInner.addAll(generateInnerDistricts(squareDistrict, squareDistrictVoters, 0));
+        }
         // top clusters are the smallest areas, most likely indicative of cities
 
-//        int numRemainingDistricts = this.numDistricts - topSquareDistrictsInner.size();
-        int numRemainingDistricts = 81-39; // we know this from generating inner districts
-        List<Polygon2D> outerDistricts = generateOuterDistricts(numRemainingDistricts, topSquareDistricts, voters);
-        return outerDistricts;
+        int numRemainingDistricts = this.numDistricts - topSquareDistrictsInner.size();
+        List<Polygon2D> outerDistricts = generateOuterDistricts(numRemainingDistricts, topSquareDistrictsInner, voters);
+
+        List<Polygon2D> districts = new ArrayList<>();
+        districts.addAll(topSquareDistrictsInner);
+        districts.addAll(outerDistricts);
+        return districts;
+    }
+
+    private boolean contains (Polygon2D square, Point2D point) {
+        Point2D c1 = square.getPoints().get(0);
+        Point2D c2 = square.getPoints().get(2);
+        double minX = Math.min(c1.getX(), c2.getX());
+        double minY = Math.min(c1.getY(), c2.getY());
+        double maxX = Math.max(c1.getX(), c2.getX());
+        double maxY = Math.max(c1.getY(), c2.getY());
+        return minX <= point.getX() && point.getX() <= maxX && minY <= point.getY() && point.getY() <= maxY;
     }
 
     private boolean isSplittableDistrict(int numVoters, int numDistricts) {
@@ -328,9 +457,8 @@ public class G1DistrictGenerator implements election.DistrictGenerator {
     private List<Polygon2D> generateOuterDistricts(int numRemainingDistricts, List<Polygon2D> squareDistricts, List<Voter> voters) {
         List<Polygon2D> outerRegions = generateOuterRegions(squareDistricts);
         List<Polygon2D> outerRegionsValidSides = generateOuterRegionsValidSize(outerRegions);
-//        List<Polygon2D> outerRegionsValidSidesAndNumDistricts = generateOuterRegionsValidSidesAndNumDistricts(numRemainingDistricts, outerRegionsValidSides, voters);
-//        return outerRegionsValidSidesAndNumDistricts;
-        return outerRegionsValidSides;
+        List<Polygon2D> outerRegionsValidSidesAndNumDistricts = generateOuterRegionsValidSidesAndNumDistricts(numRemainingDistricts, outerRegionsValidSides, voters);
+        return outerRegionsValidSidesAndNumDistricts;
     }
 
     private List<Polygon2D> generateOuterRegions(List<Polygon2D> squareDistricts) {
@@ -673,31 +801,61 @@ public class G1DistrictGenerator implements election.DistrictGenerator {
         return new Point2D.Double((corner1.getX() + corner2.getX())/2, (corner1.getY() + corner2.getY())/2);
     }
 
-    private Map<Point2D, List<Voter>> getClusters(List<Voter> voters, int k){
-        List<Point2D> centroids = randomCentroids(k);
-        sortPointsByX(centroids); // convenience for printing
-        System.out.println(centroids.size());
-        Map<Point2D, List<Voter>> clusters = new HashMap<>();
-        Map<Point2D, List<Voter>> lastState = new HashMap<>();
-        int maxIterations = 10000; //arbitrary number of times
-        for(int i = 0; i < maxIterations; i++){
-            System.out.println("iteration: " + i);
-            for(Voter voter : voters){
-                Point2D centroid = nearestCentroid(voter, centroids);
-                assignToCluster(clusters, voter, centroid);
+    private List<Polygon2D> getClusters(double offset, double base){
+        double x = offset;
+        double y = offset;
+        List<Polygon2D> result = new ArrayList<>();
+        Polygon2D triangle = new Polygon2D();
+        triangle.append(new Point2D.Double(0.0, 0.0));
+        triangle.append(new Point2D.Double(1000.0, 0.0));
+        triangle.append(new Point2D.Double(500.0, 500.0 * Math.sqrt(3)));
+        triangleMap = new HashMap<>();
+        voterMap = new HashMap<>();
+        int count = 0;
+        System.out.println("get clusters");
+        while(y < 500 * Math.sqrt(3)){
+            while(x < 1000){
+                Polygon2D tmpSquareDistrict = new Polygon2D();
+                tmpSquareDistrict.append(new Point2D.Double(x - base / 2, y - base/2));
+                tmpSquareDistrict.append(new Point2D.Double(x - base / 2, y + base/2));
+                tmpSquareDistrict.append(new Point2D.Double(x + base / 2, y + base/2));
+                tmpSquareDistrict.append(new Point2D.Double(x + base / 2, y - base/2));
+                boolean valid = true;
+                for(Point2D point : tmpSquareDistrict.getPoints()){
+                    if(!triangle.contains(point)){
+                        valid = false;
+                    }
+                }
+                if(valid){
+                    if(count == 0) System.out.println(new Pair(x, y));
+                    count++;
+                    result.add(tmpSquareDistrict);
+                    triangleMap.put(new Pair(x, y), tmpSquareDistrict);
+                    voterMap.put(new Pair(x, y), new ArrayList<Voter>());
+                }
+                x += base;
             }
-            if(i == maxIterations - 1 || keySetsEqual(clusters.keySet(), lastState.keySet())){
-                lastState = clusters;
-                break;
-            }
-            lastState = new HashMap<>(clusters);
-            // System.out.println("Before relocate: " + centroids);
-            centroids = relocateCentroids(clusters);
-            sortPointsByX(centroids); // convenience for printing
-            // System.out.println("After relocate: " + centroids);
-            clusters = new HashMap<>(); //start over and loop again
+            y += base;
+            x = offset;
         }
-        return lastState;
+        return result;
+    }
+
+    private void assignVoters(double offset, double base){
+        int excluded = 0;
+        for(Voter v : votersSortedByX){
+            double x = v.getLocation().getX();
+            double y = v.getLocation().getY();
+            double xOff = Math.floor(x / base);
+            double yOff = Math.floor(y / base);
+            try{
+                voterMap.get(new Pair(offset + (base * xOff), offset + (base * yOff))).add(v);
+            }
+            catch(NullPointerException e){
+                excluded++;
+            }
+        }
+        System.out.println("Excluded: " + excluded);
     }
 
     private boolean keySetsEqual(Set<Point2D> s1, Set<Point2D> s2) {
@@ -803,6 +961,22 @@ public class G1DistrictGenerator implements election.DistrictGenerator {
             else second++;
         }
         return first / voters.size();
+    }
+
+    private double calculateVoterDensity(Polygon2D district) {
+        int pop = getVotersInSquare(district).size();
+
+        double area = Math.pow(Math.abs(district.getPoints().get(0).getX() - district.getPoints().get(2).getX()), 2);
+
+        double density = pop / area;
+        return density;
+    }
+
+    private double calculateVoterDensity(Polygon2D district, int pop) {
+        double area = Math.pow(Math.abs(district.getPoints().get(0).getX() - district.getPoints().get(2).getX()), 2);
+
+        double density = pop / area;
+        return density;
     }
 
     private List<Voter> getVotersInSquare(Polygon2D squareDistrict) {
@@ -989,6 +1163,21 @@ public class G1DistrictGenerator implements election.DistrictGenerator {
 
                 if(d1min < d2min) return -1;
                 else if(d1min > d2min) return 1;
+                return 0;
+            }
+        });
+    }
+
+    private void sortDistrictsByDensity(List<Pair<Polygon2D, Double>> districts) {
+        Collections.sort(districts, new Comparator<Pair<Polygon2D, Double>>() {
+            @Override
+            public int compare(Pair<Polygon2D, Double> v1, Pair<Polygon2D, Double> v2) {
+
+                double density1 = v1.getValue();
+                double density2 = v2.getValue();
+
+                if(density1 < density2) return 1;
+                else if(density1 > density2) return -1;
                 return 0;
             }
         });
